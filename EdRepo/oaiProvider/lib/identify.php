@@ -10,8 +10,8 @@
  *******************************************************************************************************/
 
 function identify() {
-	include(__DIR__ . "/config.php");
-	require(dirname(dirname(__DIR__)) . "/lib/config/config.php"); //Require the master system configuration
+	include("config.php");
+	require("../lib/config/config.php"); //Require the master system configuration
 	echo $OAI_TOP."\n";
 	echo "<responseDate>".strftime("%Y-%m-%dT%H:%M:%SZ", time())."</responseDate>\n";
 	echo "<request verb=\"Identify\">".getProviderURL()."</request>\n";

@@ -7,7 +7,7 @@
 
 $(document).ready(function() {
 
-    // Remove login/my account link if JavaScript is enabled and drop-down will work
+    // Remove login/my account link if JavaScript is enable and drop-down will work
     $("#account-btn").attr('href', '#');
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -30,30 +30,5 @@ $(document).ready(function() {
         }
     });
     ///////////////////////////////////////////////////////////////////////////////////////////////////
-    
-    
-    
-    // make side panel "collapsible" by clicking the border (which is really an a)
-    $('a#collapse').click(function() {
-      $('div#panel').toggle();
-    });
-    
-    
-    // expand/collapse all link for hierarchy tree
-    var open = false;
-    $('#ecAll').click(function() {
-      if (open) {
-        $("#hierarchy").jstree("close_all", -1);
-        open = false;
-      } else {
-        $("#hierarchy").jstree("open_all", -1);
-        open = true;
-      }
-    });
-    $('#hierarch ins').click(function() {
-      if (!open) {
-        open = true;
-      }
-    });
 
 });

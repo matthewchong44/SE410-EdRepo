@@ -1,527 +1,442 @@
 <?php session_start();
 /****************************************************************************************************************************
-    moduleWizard/materials.php - managing a module's materials
-    --------------------------------------------------------------------------------------
-    Main method for a user to add/remove materials and attach child modules
- 
-  Version: 1.0
-  Author: Jon Thompson 
-  Date: 27 March 2012
- 
-  Notes: Takes several key REQUEST variables (sent by the form/URL) :
-              - action : indicates which action to take if any
-                            values: display (default), addMaterial, removeMaterial, addChild, removeChild
-              - moduleID : ID of module to edit or create new version of; sent by URL or form
+ *    materials.php - Allows the editing of materials attatched to a module.
+ *    -----------------------------------------------------------------------
+ *  Allows users to create, remove and (possibly) edit materials attatched to a module.
+ *
+ *  Version: 1.0
+ *  Author: Ethan Greer
+ *
+ *  Notes: - This file is designed to be accessed only from other files of the module submission wizard.
  ******************************************************************************************************************************/
   
-  require("../lib/config.php");
-
-  $smarty->assign("title", $COLLECTION_NAME . " - Module Wizard");
-    // title of this page. For most pages: &COLLECTION . " - Title" , default: $COLLECTION_NAME
-  $smarty->assign("tab", "modules"); // active nav tab. default:  "home"
-  $smarty->assign("baseDir", getBaseDir() ); // should always be getBaseDir() 
-  
-  $smarty->assign("pageName", "Module Wizard - Materials");
-  
-  $smarty->assign("alert", array("type"=>"", "message"=>"") );
-                  // default empty alert message (type can be either positive or negative)
-  
-  // define section of module wizard
-  $smarty->assign("section", "Materials");  
-  
-  $validActions = array("display", "addMaterial", "forceAddMaterial", "deleteMaterial", "doDeleteMaterial", "renameMaterial", "doRenameMaterial", "addChild", "addNewChild", "removeChild");
-  
-  // 'action' handles display (default), addMaterial, removeMaterial, rename, addChild, removeChild
-  $action = "display";
-  if ( isset($_REQUEST["action"]) ) {  
-
-    $action = $_REQUEST["action"];
-    
-    // check if specified action is valid
-    if ( !in_array($action, $validActions) )
-    {
-      $action = "error";
-      $smarty->assign("alert", array("type"=>"negative", 
-                        "message"=>"Unknown action specified. 
-                        Be sure to only use provided links to this page. 
-                        If this error persists, contact the collection manager.") );
+  require("../lib/backends/backend.php");
+  require("../lib/look/look.php");
+  require("../lib/config/config.php");
+  require("../lib/frontend-ui.php");
+  require("../lib/moduleEditUploadHelpers.php");
+  $backendInformation=getBackendBasicInformation();
+  $backendCapabilities=getBackendCapabilities();
+?>
+<?php
+  function logout() {
+    if(isset($_SESSION["authenticationToken"])) {
+      $logOutResult=logUserOut($_SESSION["authenticationToken"]);
     }
-  }       
-  if ( isset($_REQUEST["moduleID"]) ) {
-      $moduleID=$_REQUEST["moduleID"];
-      $moduleInfo=getModuleByID($moduleID);        
-  } else {
-      $moduleInfo = FALSE;
-  }  
-  if ( !isset($moduleInfo["moduleID"]) )
-  {
-    $action = "error";
-    if ($moduleInfo=="NotImplemented") {
-      $smarty->assign("alert", array("type"=>"negative", 
-              "message"=>"Sorry, the backend does not support creating/editing modules.") );
+    unset($_SESSION["authenticationToken"]);
+  }
+  
+  function displayNavigationFooter($moduleID, $moduleAction) {
+    require("../lib/config/config.php");
+    echo '<input type="hidden" readonly="readonly" name="moduleID" value="'.$moduleID.'"></input>';
+    echo '<input type="hidden" readonly="readonly" name="moduleAction" value="'.$moduleAction.'"></input>';
+    echo '<input type="submit" class="button" name="delete" value="Delete This Module" onclick="return changeFormActionToDelete();"></input>';
+    echo '<input type="submit" class="button" name="back" value="Back" onclick="return changeFormActionToBack();"></input>';
+    echo '<input type="submit" class="button" name="next" value="Next" onclick="return changeFormActionToNext();"></input>';
+    echo '<input type="submit" class="button" name="save" value="Save Progress" onclick="return changeFormActionToSave();"></input>';
+    if($NEW_MODULES_REQUIRE_MODERATION==TRUE) {
+      echo '<input type="submit" class="button" name="submitForModeration" value="Submit For Moderation" disabled="disabled" onclick="return changeFormActionToSubmit();"></input>';
     } else {
-      $smarty->assign("alert", array("type"=>"negative", 
-              "message"=>"Error retrieving specified module. 
-              If this error persists, contact the collection manager.") );
+      echo '<input type="submit" class="button" name="submit" value="Publish To Collection" disabled="disabled" onclick="return changeFormActionToSubmit();"></input>';
+    }
+    echo '</form>';
+  }
+  
+  function displayMaterialEscapeNav($moduleID, $label) {
+    echo '<form name="addMaterialNav" action="materials.php" method="post">';
+    echo '<input type="hidden" name="moduleAction" value="edit"></input>';
+    echo '<input type="hidden" name="moduleID" value="'.$moduleID.'"></input>';
+    echo '<input type="submit" class="button" name="submit" value="'.$label.'"></input></form>';
+  }
+  
+  if(isset($_SESSION["authenticationToken"])) { //Check if we think someone is already logged in.
+    $userInformation=checkIfUserIsLoggedIn($_SESSION["authenticationToken"]);
+    if(count($userInformation)==0) { //If true, than the user wasn't found
+      logout();
+      unset($userInformation);
     }
   }
-  // if it's any of these actions, we need a value material as well
-  if ($action == "doDeleteMaterial" || $action == "deleteMaterial" || $action == "renameMaterial" || $action == "doRenameMaterial") {
-      if ( isset($_REQUEST["materialID"]) ) {
-          $materialID=$_REQUEST["materialID"];
-          $materialInfo=getMaterialByID($materialID);        
+  
+  if(!(isset($_REQUEST["moduleID"]) && isset($_REQUEST["moduleAction"]))) {
+    $moduleAction="error";
+  } else {
+    $moduleID=$_REQUEST["moduleID"];
+    $moduleAction=$_REQUEST["moduleAction"];
+  }
+  
+  if($moduleAction=="edit" || $moduleAction=="showAddMaterial" || $moduleAction=="doAddMaterial" || $moduleAction=="doRemoveMaterial") {
+    $moduleInfo=getModuleByID($moduleID);
+  } else { //this else block handles module actions which aren't handled.  Just set the action to "error" to take care of these.
+    $moduleAction="error";
+  }
+  
+?>
+
+<html>
+<head>
+  <link rel="stylesheet" href="<?php echo "../lib/look/".$LOOK_DIR."/main.css"; ?>"></link>
+  <title><?php echo "Module Submission: Materials" ?></title>
+  <script type="text/javascript">
+    function changeFormActionToNext() {
+      document.getElementById("mainForm").action="crossReferences.php";
+      return true;
+    }
+    function changeFormActionToBack() {
+      document.getElementById("mainForm").action="prereqsTopicsObjectives.php";
+      return true;
+    }
+    function changeFormActionToSubmit() {
+      return false;
+    }
+    function changeFormActionToSave() {
+      document.getElementById("mainForm").action="save.php";
+      return true;
+    }
+    function changeFormActionToDelete() {
+      document.getElementById("mainForm").action="delete.php";
+      return true;
+    }
+  </script>
+  <script type="text/javascript">
+    function checkTitle() {
+      var title=document.getElementById("materialTitle").value;
+      if(title=="" || title==" ") { //Check for an empty title
+        alert("You must enter a title for this material.");
+        return false;
+      }
+      return true;
+    }
+  
+    function setProperMaterialSourceInput() {
+      var div=document.getElementById("materialSourceInputDiv");
+      var input=document.getElementById("materialSourceInput");
+      var selectObj=document.getElementById("materialSourceType");
+      var fileOrURL=selectObj.options;
+      if(fileOrURL[selectObj.selectedIndex].value=="LocalFile") {
+        div.removeChild(input);
+        var input2=document.createElement("input");
+        input2.setAttribute("name", "materialFile");
+        input2.setAttribute("type", "file");
+        input2.setAttribute("id", "materialSourceInput");
+        div.appendChild(input2);
+      } else if(fileOrURL[selectObj.selectedIndex].value=="ExternalURL") {
+        div.removeChild(input);
+        var input2=document.createElement("input");
+        input2.setAttribute("name", "materialURL");
+        input2.setAttribute("type", "text");
+        input2.setAttribute("id", "materialSourceInput");
+        input2.setAttribute("value", "http://");
+        div.appendChild(input2);
       } else {
-          $materialInfo = FALSE;
-      }
-      $smarty->assign("materialInfo", $materialInfo);  
-      
-      $allModuleMaterials=getAllMaterialsAttatchedToModule($moduleID);
-      if ($allModuleMaterials==FALSE || !in_array($materialInfo["materialID"], $allModuleMaterials) ) {
-          $smarty->assign("alert", array("type"=>"negative", "message"=>"This material doesn't belong to this module!") );
-          $action = "error";
-      }
-      
-      if ($materialInfo == FALSE) {
-          $smarty->assign("alert", array("type"=>"negative", "message"=>"Not enough valid information to continue.") );
-          $action = "error";
-      }
-  }
-  $smarty->assign("action", $action); 
-  
-  
-  // 'hasPermission' determines whether the user has permission to perform this action
-  $hasPermission = false;
-  if ( isset($userInformation) ) {
-	$group = $userInformation["groups"];
-    $type = $userInformation["type"];
-	$restrictions = $moduleInfo["restrictions"];
-	$canView = FALSE; 
-    // user must be logged in and have sufficient privileges
-    if ($type=="Submitter" || $type=="Editor" || $type=="Admin") {
-        // if edit or createNewVersion, check to make sure user owns module or user
-        // is editor or admin (who can edit all modules)
-        if ( $type!="Submitter" || ($type=="Submitter"
-            && isset($moduleInfo["submitterUserID"]) 
-            && $moduleInfo["submitterUserID"]==$userInformation["userID"]) )
-        {
-            $hasPermission = true;
-        } elseif ($moduleAction != "error") {
-            $smarty->assign("alert", array("type"=>"negative", 
-                "message"=>"Sorry, you don't have permission to edit this module!") );
-        }
-    } else {
-        $smarty->assign("alert", array("type"=>"negative", 
-                "message"=>"Sorry, you don't have permissions to create/edit modules!") );
-    }
-	if ($group == "None" || $group == "Admin" || $restrictions == $group || $restrictions == "None" || $userInformation["userID"] == $moduleInfo["submitterUserID"]) {
-		$canView = TRUE; 
-	}
-  } else {
-    $smarty->assign("alert", array("type"=>"negative", 
-                "message"=>"Sorry, you must be logged in to create/edit modules!") );
-  }
-  $smarty->assign("hasPermission", $hasPermission);
-  $smarty->assign("canView", $canView); 
-  
-  
-  
-  // if user has permission, and no error was found, continue
-  if ($hasPermission == true && $action != "error")
-  {
-    $smarty->assign("pageName", "Module Wizard - Editing \"".$moduleInfo["title"]."\"");
-  
-    $smarty->assign("moduleInfo", $moduleInfo);
-    
-    $modules=searchModules(array("status"=>array("Active")));
-    $userModules=searchModules(array("userID"=>$userInformation["userID"])); // All modules that belong to the user.
-    foreach ($userModules as $userModule) {
-      if (!in_array($userModule, $modules)) {
-        $modules[] = $userModule;
+        alert("Internal error: Unknown index selected.");
       }
     }
-    $smarty->assign("modules", $modules);
     
-    
-    $materials = array();
-    $allModuleMaterials=getAllMaterialsAttatchedToModule($moduleInfo["moduleID"]);
-    if($allModuleMaterials===FALSE) {
-        $smarty->assign("alert", array("type"=>"negative",
-            "message"=>"Error retrieving this module's materials!") );
-    } else {
-        for($i=0; $i<count($allModuleMaterials); $i++) {
-            $materials[$i]=getMaterialByID($allModuleMaterials[$i]);                
-        }
+    function toggleRightsExamples() {
+      if(document.getElementById("rightsExamples").style.display=="none") {
+        document.getElementById("rightsExamples").style.display="block";
+      } else {
+        document.getElementById("rightsExamples").style.display="none";
+      }
     }
-    $smarty->assign("materials", $materials);
+  </script>
+  <script type="text/javascript">
+    var savedMaterialsTitles=new Array();
+    var savedMaterialsIDs=new Array();
     
-    $moduleChildren = array();
-    $moduleChildrenID = getChildren($moduleInfo["moduleID"]);
-    foreach($moduleChildrenID as $moduleChildID) {
-      array_push($moduleChildren,getModuleByID($moduleChildID));
-    }	 
-    $smarty->assign("moduleChildren", $moduleChildren);
-	
-    if ($action == "addMaterial" || $action == "forceAddMaterial") {
-        // check all fields are set
-        // if not, overwrite given fields to show user
-		if ($action != "forceAddMaterial") {
-			$_SESSION["materialTypes"] = ($_REQUEST["materialType"]); 
-			$_SESSION["materialFiles"] = ($_FILES["materialFile"]); 
-			$_SESSION["materialFileNames"] = ($_FILES["materialFile"]["name"]); 
-			$_SESSION["materialFileTypes"] = ($_FILES["materialFile"]["type"]); 
-			$_SESSION["materialNames"] = ($_REQUEST["materialName"]); 
-		}
-        if ( (!(isset($_REQUEST["moduleID"]) && isset($_REQUEST["materialType"]) 
-            && (($_REQUEST["materialType"]=="LocalFile" && isset($_REQUEST["materialName"]) && isset($_FILES["materialFile"])) 
-            || ($_REQUEST["materialType"]=="ExternalURL" && isset($_REQUEST["materialName"]) && isset($_REQUEST["materialURL"])))) )&& $action != "forceAddMaterial" ) {
-            $materialInfo = array();
-            // overwrite given fields to show smarty
-            if ( isset($_REQUEST["materialType"])) {
-                $materialInfo["type"] = $_REQUEST["materialType"];		
-            }
-            if ( isset($_REQUEST["materialName"]) ) {
-                $materialInfo["title"] = $_REQUEST["materialName"];				
-            }
-            $smarty->assign("materialInfo", $materialInfo);
-            $smarty->assign("alert", array("type"=>"negative", 
-                "message"=>"Unable to add a material to this module.  
-                            Some information necessary to add the material was missing.") );
+    function initialFillArrayAndDisplay() {
+      <?php //This PHP glue fills the JavaScript savedMaterials* arrays with information about saved materials from the database.
+        $allModuleMaterials=getAllMaterialsAttatchedToModule($moduleInfo["moduleID"]);
+        if($allModuleMaterials===FALSE) {
+          echo 'alert("Warning:  Internal system error in JS:internalFillArrayAndDisplay() and PHP:getAllMaterialsAttatchedToModule() !")';
         } else {
-		  // fields are set, so attempt to add material
-		if ($action == "forceAddMaterial") {
-			$type = ($_SESSION["materialTypes"]);
-			$files = ($_SESSION["materialFiles"]);
-			$fileName = ($_SESSION["materialFileNames"]);
-			$fileType = ($_SESSION["materialFileTypes"]);
-			$name = ($_SESSION["materialNames"]); 
-		}
-		else {
-			$type = ($_REQUEST["materialType"]);
-			$files = ($_FILES["materialFile"]);
-			$fileName = ($_FILES["materialFile"]["name"]); 
-			$fileType = ($_FILES["materialFile"]["type"]); 
-			$name = ($_REQUEST["materialName"]); 
-		}
-          if($type=="LocalFile") { 
-			$content = storeMaterialLocally($moduleID, $files, '..'.$MATERIAL_STORAGE_DIR); 
-			$readableFileName = $fileName; 
-			$format = $fileType; 
-          } elseif ($type=="ExternalURL") { //Run this block if the material source type isn't a file to upload (ie its a URL)
-            $content=$_REQUEST["materialURL"]; //Get the link (URL) from what was submitted.
-            $readableFileName=""; //There is no "human-readable" file name for URLs.
-            $format = "";
+          for($i=0; $i<count($allModuleMaterials); $i++) {
+            $material=getMaterialByID($allModuleMaterials[$i]);
+            $title=$material["title"];
+            $title=preg_replace('/"/', '\"', $title); //Make safe for a JavaScript string
+            echo 'savedMaterialsTitles.push("'.$title.'");';
+            echo 'savedMaterialsIDs.push("'.$material["materialID"].'");';
           }
-          if($content===FALSE) { //Error storing material file?
-            $smarty->assign("alert", array("type"=>"negative", 
-                  "message"=>"<strong>Unable to upload material file.</strong><br />Check to ensure the file fits the minimum upload requirements (size, type, and virus-free) and try again.  If this problem persists, 
-                              please contact the collection maintainer.") );
-          } elseif($content == "FileExists" && $action != "forceAddMaterial") {			
-			$modulesID = $moduleInfo["moduleID"]; 
-			//Pop up to the user so they know they will be overwriting materials previously saved 
-			print "<script> if(confirm('Saving this material will overwrite the previous material with the same name. \\n".
-									"Would you like to overwrite? \\n\\n".
-									"$readableFileName')) 
-							{
-								var myWindow = window.open('materials.php?moduleID="."$moduleID"."&action=forceAddMaterial', '_self'); 
-							}
-							else {
-								alert('Unable to upload the file: \\n\\n $readableFileName\\n\\nbecause a file with that name has already been uploaded to this module.\\nPlease rename the file on your computer and try again.');
-								var myWindow = window.open('materials.php?moduleID="."$moduleID', '_self');
-							}
-
-				  </script>"; 				  
-          } else {		  
-            $materialID=createMaterial($content, $type, $readableFileName, $name , $format); //Add the material to the database
-            if($materialID===FALSE) { //Error adding material?
-              $smarty->assign("alert", array("type"=>"negative", 
-                  "message"=>"<strong>Unable to create material.</strong><br />
-                              Please contact the collection maintainer to report this error.</p>") );
-            } else {
-              $result=attatchMaterialToModule($materialID, $moduleInfo["moduleID"]); //Attach the material to the module
-              if($result===FALSE) { //Error attaching material to module?
-                $smarty->assign("alert", array("type"=>"negative", 
-                  "message"=>"<strong>Unable to attach material to module.</strong><br />
-                              Please contact the collection maintainer to report this error.") );
-              } else { //Material successfully uploaded, added to database, and attached to module!
-                //$smarty->assign("alert", array("type"=>"positive", "message"=>"Material successfully added.") ); 
-                // on success, redirect to materials step in wizard:
-				
-				if ($action == "forceAddMaterial") {
-					deleteSameMaterialFromDB($materialID, $type, $content, $fileName);
-				}
-				
-				unset($_SESSION["materialTypes"]); 
-				unset($_SESSION["materialFiles"]); 
-				unset($_SESSION["materialFileNames"]); 
-				unset($_SESSION["materialFileTypes"]); 
-				unset($_SESSION["materialNames"]); 
-				
-				print "<script> 
-						var myWindow = window.open('materials.php?moduleID="."$moduleID', '_self'); 
-				  </script>"; 				  
+        }
+        echo "var moduleID=".$moduleInfo["moduleID"].";";
+      ?>
+      var i;
+      var parent=document.getElementById("materialsList");
+      var newSubmit;
+      var newForm;
+      var newInput1; //A hidden form field with the moduleAction
+      var newInput2; //A hidden form field with the ID of the module to remove
+      var newInput3; //A hidden form field with the current ModuleID
+      var newDiv;
+      for(i=0; i<savedMaterialsTitles.length; i++) {
+        newform=document.createElement("form");
+        newInput1=document.createElement("input");
+        newInput2=document.createElement("input");
+        newInput3=document.createElement("input");
+        newSubmit=document.createElement("input");
+        newForm=document.createElement("form");
+        newDiv=document.createElement("div");
+        newDiv.setAttribute("name", "materialDiv"+i);
+        newDiv.innerHTML=savedMaterialsTitles[i];
+        newForm.setAttribute("name", "materialForm"+i);
+        newForm.setAttribute("action", "materials.php");
+        newForm.setAttribute("method", "post");
+        newInput1.setAttribute("name", "moduleAction");
+        newInput1.setAttribute("value", "doRemoveMaterial");
+        newInput1.setAttribute("type", "hidden");
+        newInput1.setAttribute("readonly", "readonly");
+        newInput2.setAttribute("name", "materialIDToRemove");
+        newInput2.setAttribute("type", "hidden")
+        newInput2.setAttribute("readonly", "readonly");
+        newInput2.setAttribute("value", savedMaterialsIDs[i]);
+        newInput3.setAttribute("name", "moduleID");
+        newInput3.setAttribute("type", "hidden");
+        newInput3.setAttribute("readonly", "readonly");
+        newInput3.setAttribute("value", moduleID);
+        newSubmit.setAttribute("name", "submit");
+        newSubmit.setAttribute("type", "submit");
+        newSubmit.setAttribute("value", "Remove This Material");
+        
+        newForm.appendChild(newInput1)
+        newForm.appendChild(newInput2);
+        newForm.appendChild(newInput3);
+        newForm.appendChild(newSubmit);
+        newDiv.appendChild(newForm);
+        parent.appendChild(newDiv);
+      }
+    }
+  </script>
+</head>
+<body onload="initialFillArrayAndDisplay();">
+<div id="header">
+  <?php
+    showHeader();
+  ?>
+  <div id="top-nav-bar">
+    <?php showTopNavMenu(); ?>
+  </div>
+</div>
+<div id="content-body-wrapper">
+  <div id="content-body">
+    <div id="left-sidebar">
+      <?php
+        if(isset($userInformation)) {
+          if($userInformation["type"]=="Viewer") {
+            showViewerMenu();
+          } elseif($userInformation["type"]=="SuperViewer") {
+            showSuperViewerMenu();
+          } elseif($userInformation["type"]=="Submitter") {
+            showSubmitterMenu();
+          } elseif($userInformation["type"]=="Editor") {
+            showEditorMenu();
+          } elseif($userInformation["type"]=="Admin") { //We are logged in as an admin.
+            showAdminMenu();
+          }
+        } else { //We aren't logged in.
+          showGuestMenu();
+        }
+      ?>
+    </div> <!-- End left-sidebar div -->
+    <div id="mainContentArea">
+      <div id="mainContentAreaTopInfoBar">
+        <?php
+          if(isset($userInformation)) {
+            echo "You are logged in as ".$userInformation["firstName"]." ".$userInformation["lastName"].'. &nbsp;<a href="../userManageAccount.php">Manage Your Account</a> ';
+            echo 'or <a href="../loginLogout.php?action=logout">log out</a>.';
+          } else {
+            echo 'Welcome. &nbsp;Please <a href="../loginLogout.php?action=login">login</a> to your account, or <a href="../createAccount.php">create a new account</a>.';
+          }
+        ?>
+      </div>
+      <?php
+        if(!isset($userInformation)) {
+          echo '<h1>You Must Be Logged In To Continue</h1>';
+          echo '<p>You must be logged in to use this page.  You can log in at the <a href="loginLogout.php">log in page</a>.</p>';
+        } elseif($userInformation["type"]=="Submitter" || $userInformation["type"]=="Editor" || $userInformation["type"]=="Admin") { //This indicates the user IS logged in and DOES have module/material creation rights.
+          if($moduleAction=="edit" || $moduleAction=="showAddMaterial" || $moduleAction=="doAddMaterial" || $moduleAction=="doRemoveMaterial") {
+            if($moduleAction=="edit") {
+              echo '<h1>Manage Module Materials</h1>';
+            } elseif($moduleAction=="showAddMaterial") {
+              echo '<h1>Add a Material to this Module</h1>';
+            } elseif($moduleAction=="doAddMaterial") {
+              echo '<h1>Add a Material to this Module</h1>';
+            } elseif($moduleAction=="doRemoveMaterial") {
+              echo '<h1>Remove a Material from this Module</h1>';
+            }
+            /* Make sure that we have the right to edit this module. */
+            if($moduleInfo["submitterUserID"]!=$userInformation["userID"] && !($userInformation["type"]=="Editor" || $userInformation["type"]=="Admin")) {
+              $moduleAction="customError";
+              echo '</p><span class="error">Error.  You may not edit this module.</span></p>';
+              echo '<p>You are not the owner of this module and do not have sufficient privileges to override this restriction.  You have therefore been ';
+              echo 'blocked from editing this module.</p>';
+            }
+            /* If we have the right to edit this module, but are not the module's owner, print a warning. */
+            if($moduleInfo["submitterUserID"]!=$userInformation["userID"] && ($userInformation["type"]=="Editor" || $userInformation["type"]=="Admin")) {
+              echo '<p><span class="warning">WARNING:  You are editing a module which does not belong to you!</span></p>';
+              echo '<p>Editing a module which does not belong to you is not recomended.  If you submit this module, the origional module owner will no ';
+              echo 'longer be able to edit or create new versions of this module.  It is strongly suggested, therefore, that you stop editing this ';
+              echo 'module.  If you choose to continue editing this module, it is STRONGLY reccomended you do not submit it for moderation or publish ';
+              echo 'it to the collection.</p>';
+            }
+            /* If the module's action is still edit (it didn't get changed to an error of some kind), keep going. */
+            if($moduleAction=="edit") {
+              if(saveAllPossible($_REQUEST, $userInformation, $moduleInfo)===TRUE) {
+                echo '<p class="alert positive"><img src="../lib/look/'.$LOOK_DIR.'/success.png" alt="Module Progress Saved"> Module saved.</p>';
+              } else {
+                echo '<p class="alert negative"><img src="../lib/look/'.$LOOK_DIR.'/failure.png" alt="Failure"></img> <span class="error">Unable to save module progress.</span></p>';
+              }
+              echo '<p>Materials are the actual media which make up your module, such as pictures, word processing files, and videos.  </p>';
+              echo '<table class="MIEV">';
+              echo '<tr><td class="MIEVCategoryCell"><span class="MIEVCategoryText">Materials</span></td>';
+               echo '<td><div id="materialsList"></div>';
+               echo '<form method="post" name="materialManagementForm" id="materialManagementForm" action="materials.php">';
+               echo '<input type="hidden" name="moduleID" readonly="readonly" value="'.$moduleInfo["moduleID"].'"></input>';
+               echo '<input type="hidden" name="moduleAction" readonly="readonly" value="showAddMaterial"></input>';
+               echo '<input type="submit" class="button" name="addMaterial" value="Add A Material"></input></td></tr>';
+              echo '</table></form>';
+              echo '<form name="mainForm" id="mainForm" action="materials.php">';
+              displayNavigationFooter($moduleID, $moduleAction);
+            }
+            if($moduleAction=="showAddMaterial") { //Show a form to add a material.
+              echo '<p>Enter as much information about his material as you know.</p>';
+              echo '<form enctype="multipart/form-data" name="addMaterialForm" action="materials.php" method="post">';
+              echo '<input type="hidden" name="moduleAction" value="doAddMaterial" readonly="readonly"></input>';
+              echo '<input type="hidden" name="moduleID" value="'.$moduleInfo["moduleID"].'" readonly="readonly"></input>';
+              echo '<table class="MIEV">';
+              echo '<tr><td class="MIEVCategoryCell"><span class="MIEVCategoryText">Material Title</span><br>';
+               echo '<span class="MIEVDescriptiveText">A descriptive title for the material.</span></td>';
+               echo '<td><input type="text" name="materialTitle" id="materialTitle"></input></td></tr>';
+              echo '<tr><td class="MIEVCategoryCell"><span class="MIEVCategoryText">Author</span><br>';
+               echo '<span class="MIEVDescriptiveText">The author of the material.  If this material is not your own work, this is the name of the ';
+               echo 'person(s) or orginization(s) who created the material.  If you created the material yourself, put your name here.</span></td>';
+               echo '<td><input type="text" name="materialCreator"></input></td></tr>';
+              echo '<tr><td class="MIEVCategoryCell"><span class="MIEVCategoryText">Material Type</span><br>';
+               echo '<span class="MIEVDescriptiveText">Describes the type of the material.</span></td><td>';
+                echo '<select name="materialType">';
+                 echo '<option value="text">Text</option>';
+                 echo '<option value="StillImage">Image/Picture</option>';
+                 echo '<option value="Software">Software</option>';
+                 echo '<option value="Service">Service</option>';
+                 echo '<option value="PhysicalObject">Physical Object</option>';
+                 echo '<option value="MovingImage">Video, Animation, Moving Image</option>';
+                 echo '<option value="InteractiveResource">Interactive Resource</option>';
+                 //echo '<option value="Image">Image (2)</option>';
+                 echo '<option value="Event">Event</option>';
+                 echo '<option value="Dataset">Dataset</option>';
+                 echo '<option value="Collection">Collection</option>';
+                 echo '<option value="NotSpecified">Unknown/Other</option>';
+               echo '</td></tr>';
+              echo '<tr><td class="MIEVCategoryCell"><span class="MIEVCategoryText">Description</span><br>';
+               echo '<span class="MIEVDescriptiveText">A brief description of the material.</span></td>';
+               echo '<td><textarea name="materialDescription"></textarea></td></tr>';
+              echo '<tr><td class="MIEVCategoryCell"><span class="MIEVCategoryText">Language</span><br>';
+               echo '<span class="MIEVDescriptiveText">Specifies the language of the material (for example, English).</span></td>';
+               echo '<td><input type="text" name="materialLanguage"></input></td></tr>';
+              echo '<tr><td class="MIEVCategoryCell"><span class="MIEVCategoryText">Material Publisher</span><br>';
+               echo '<span class="MIEVDescriptiveText">The publisher of the material.</span></td>';
+               echo '<td><input type="text" name="materialPublisher"></input></td></tr>';
+              echo '<tr><td class="MIEVCategoryCell"><span class="MIEVCategoryText">Rights</span><br>';
+               echo '<span class="MIEVDescriptiveText">If this material is covered by a specific liscense or limitation on its use, specify so here.  ';
+               echo 'Either the text of a liscense/rights statement, or a link to such a statement is acceptable.  Note that the system will display ';
+               echo 'this rights statement/liscense with this material, but can not itself enforce it.<br>';
+               echo '<a href="javascript:toggleRightsExamples();">Toggle Examples</a></span>';
+               echo '<div id="rightsExamples" style="display: none;" class="MIEVDescriptiveText">';
+               echo '<ul><li>GNU General Public Liscense V3 (http://www.gnu.org/licenses/gpl-3.0.html)</li>';
+               echo '<li>Public Domain</li>';
+               echo '<li>Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License (http://creativecommons.org/licenses/by-nc-sa/3.0/)</li>';
+               echo '<li>Copyright 2009 John Doe.  All rights reserved.  Modifications phrohibited without written permission from John Doe, 0 JD Lane, Somewhere, NY 00000</li></ul></div></td>';
+               echo '<td><textarea name="materialRights"></textarea></td></tr>';
+              echo '<tr><td class="MIEVCategoryCell"><span class="MIEVCategoryText">Material Source</span></td>';
+                echo '<td><select name="materialSourceType" id="materialSourceType" onChange="setProperMaterialSourceInput();">';
+                 echo '<option value="LocalFile" selected="selected">Upload File</option>';
+                 echo '<option value="ExternalURL">Internet URL</option>';
+                echo '</select><br>';
+                echo '<div id="materialSourceInputDiv">';
+                 echo '<input type="file" name="materialFile" id="materialSourceInput"></input>';
+                echo '</div>';
+              echo '</table>';
+              echo '<input type="submit" class="button" name="submit" value="Add Material" onclick="return checkTitle();"></input></form>';
+              displayMaterialEscapeNav($moduleInfo["moduleID"], "Cancel and Return To Material List");
+            }
+            if($moduleAction=="doAddMaterial") { //Actually try to add a material.
+              if(!(isset($_REQUEST["moduleID"]) && isset($_REQUEST["materialType"]) && isset($_REQUEST["materialTitle"]) && isset($_REQUEST["materialRights"]) && isset($_REQUEST["materialLanguage"]) && isset($_REQUEST["materialPublisher"]) && isset($_REQUEST["materialDescription"]) && isset($_REQUEST["materialCreator"]) && isset($_REQUEST["materialSourceType"]) && (($_REQUEST["materialSourceType"]=="LocalFile" && isset($_FILES["materialFile"])) || ($_REQUEST["materialSourceType"]=="ExternalURL" && isset($_REQUEST["materialURL"]))))) {
+                //Not enough information was given to add the material.
+                var_dump($_REQUEST);
+                vaR_dump($_FILES);
+                echo '<p class="alert negative"><img src="../lib/look/'.$LOOK_DIR.'/failure.png" alt="Failure"></img> <span style="error">Unable to add a material to this ';
+                echo 'module.  Some information necessary to add the material was not present.</span></p>';
+                displayMaterialEscapeNav($moduleInfo["moduleID"], "Return To Material List");
+              } else { //This else block runs if enough information to add the material was present.
+                if($_REQUEST["materialSourceType"]=="LocalFile") { //Is the material type a file to store?
+                  $materialLink=storeMaterialLocally($_FILES["materialFile"], '..'.$MATERIAL_STORAGE_DIR); //Try to store the material file, and get a link to it.
+                  $readableFileName=$_FILES["materialFile"]["name"]; //Set the "human-readable" file name to save to be the name of the file uploaded.
+                } else { //Run this block if the material source type isn't a file to upload (ie its a URL)
+                  $materialLink=$_REQUEST["materialURL"]; //Get the link (URL) from what was submitted.
+                  $readableFileName=""; //There is no "human-readable" file name for URLs.
+                }
+                if($materialLink===FALSE) { //Error storing material life?
+                  echo '<p class="alert negative"><img src="../lib/look/'.$LOOK_DIR.'/failure.png" alt="Failure"></img> <span style="error">Unable to upload material file.</span></p>';
+                  echo '<p>Check to ensure the file fits the minimum upload requirements (size, type, and virus-free) and try again.  If this problem persists, ';
+                  echo 'please contact the collection maintainer.</p>';
+                  displayMaterialEscapeNav($moduleInfo["moduleID"], "Return To Material List");
+                } else {
+                  $materialID=createMaterial($materialLink, $_REQUEST["materialSourceType"], $readableFileName, $_REQUEST["materialType"], $_REQUEST["materialTitle"], $_REQUEST["materialRights"], $_REQUEST["materialLanguage"], $_REQUEST["materialPublisher"], $_REQUEST["materialDescription"], $_REQUEST["materialCreator"]); //Add the material to the database
+                  if($materialID===FALSE) { //Error adding material?
+                    echo '<p class="alert negative"><img src="../lib/look/'.$LOOK_DIR.'/failure.png" alt="Failure"></img> <span style="error">Unable to create material.</span></p>';
+                    echo '<p>Please contact the collection maintainer to report this error.</p>';
+                    displayMaterialEscapeNav($moduleInfo["moduleID"], "Return To Material List");
+                  } else {
+                    $result=attatchMaterialToModule($materialID, $moduleInfo["moduleID"]); //Attatch the material to the module
+                    if($result===FALSE) { //Error attatching material to module?
+                      echo '<p class="alert negative"><img src="../lib/look/'.$LOOK_DIR.'/failure.png" alt="Failure"></img> <span style="error">Unable to attatch material to module.</span></p>';
+                      echo '<p>Please contact the collection maintaier to report this error.</p>';
+                      displayMaterialEscapeNav($moduleInfo["moduleID"], "Return To Material List");
+                    } else { //Material successfully uploaded, added to database, and attatched to module!
+                      echo '<p class="alert positive"><img src="../lib/look/'.$LOOK_DIR.'/success.png" alt="Success"></img>  Material successfully added.</p>';
+                      displayMaterialEscapeNav($moduleInfo["moduleID"], "Return To Material List");
+                    }
+                  }
+                }
               }
             }
-          }  // end if($content===FALSE)
-        }
-		
-    } elseif ($action == "addChild") { // create parent-child relationship
-      $validChild = false; // true if child and parent are given
-      $validParent = false;
-      // Gets the modules that the user wants to create the relationship between.
-      if (isset($_REQUEST["newChild"]) && $_REQUEST["newChild"] != "") {
-        $newChildID=$_REQUEST["newChild"];	 
-        $newChild=getModuleByID($newChildID);
-        if ($newChild["moduleID"]==$newChildID) {
-          $validChild = true;
-        }
-      }
-      if ($moduleInfo != FALSE) {
-        $newParentID=$moduleInfo["moduleID"];	 
-        $newParent=getModuleByID($newParentID);
-        if ($newParent["moduleID"]==$newParentID) {
-          $validParent = true;
-        }
-      }
-      
-      if ($validChild && $validParent) {
-        $duplicateRelationship = FALSE;
-        $currentChildrenID=getChildren($newParentID);
-        foreach ($currentChildrenID as $currentChildID) { // Makes sure the relationship being created doesn't already exist.
-          if($newChildID == $currentChildID) {
-            $duplicateRelationship = TRUE;
-          }
-        }
-        $currentParentsID=getParents($newChildID);
-        foreach ($currentParentsID as $currentParentID) {
-          if($newParentID == $currentParentID) {
-            $duplicateRelationship = TRUE;
-          }
-        }
-
-        /*
-                  To prevent circular relationships:
-                  ParentID must NOT be ChildID
-                  ParentID must NOT be descendant of ChildID
-                  ChildID must NOT be ancestor of ParentID
-                  */
-        $circularRelationship = FALSE;
-        if ( in_array($newParentID, getDescendants($newChildID)) || in_array($newChildID, getAncestors($newParentID)) ) {
-          $circularRelationship = TRUE;
-        }
-        
-        
-        if( $duplicateRelationship !== TRUE && $circularRelationship !== TRUE ) { // If it isn't a duplicate, creates relationship and shows
-          $pcResult=setParentChild($newParentID, $newChildID);					 // according alert.
-        }	
-        
-        if( !empty($pcResult) && $pcResult === TRUE) {
-          //$smarty->assign("alert", array("type"=>"positive", "message"=>"Successfully Created New Relationship.") );
-            // on success, redirect to materials step in wizard:
-            header( 'Location: materials.php?moduleID='.$moduleInfo["moduleID"] ) ;
-        }
-        else if ($duplicateRelationship == TRUE)  {
-          $smarty->assign("alert", array("type"=>"negative", "message"=>"You are trying to create a relationship that already exists.") );
-        }
-        else if ($circularRelationship == TRUE)  {
-          $smarty->assign("alert", array("type"=>"negative", "message"=>"Error. You are trying to create a circular relationship (e.g. one where the given parent is a descendant of the given child).") );
-        }
-        else {		
-          $smarty->assign("alert", array("type"=>"negative", "message"=>"Error While Creating New Relationship. Please Try Again.") );
-        }
-      } else {
-        $smarty->assign("alert", array("type"=>"negative", "message"=>"Error creating new relationship. Please be sure to supply both a valid child and a valid parent.") );
-      }
-      
-    } else if ($action == "addNewChild") {
-	      $resourceTitle = $_REQUEST["moduleName"];      // Required length 3
-          $description=$_REQUEST["moduleDescription"];          // Must not be blank
-          
-          $smarty->assign("newChildModuleInfo", array("title"=>$resourceTitle, 
-                                        "description"=>$description)	);
-          
-          // Check to see if title is valid //  
-          if(validateFieldLength( $resourceTitle, 2)) {
-            $smarty->assign("alert", array("type"=>"negative", 
-                "message"=>"Error: No module title given. The module could not be created because its name was not specified.") );
-          } 
-          // Check to see if description is valid //
-          else if(validateFieldLength( $description, 0 )){ 
-            $smarty->assign("alert", array("type"=>"negative", 
-                "message"=>"Error: No description given. The module could not be created because its description was not specified.") );
-          } 
-		  else {
-            $moduleID=createModule($_REQUEST["moduleName"], $description, $language, $educationLevel, $minutes, "", "InProgress", "Unregistered", $interactivityType, $rights, $userInformation["userID"], "", "None");
-            if($moduleID===FALSE) {
-              $smarty->assign("alert", array("type"=>"negative", 
-                "message"=>"An unknown error occurred while attempting to create the module.  This is most likely a back-end problem.") );
-            } else {
-              $childModuleInfo=getModuleByID($moduleID);
-              $userAuthor=$userInformation["firstName"]." ".$userInformation["lastName"];
-              $result=setModuleAuthors($childModuleInfo["moduleID"], array($userAuthor)); //By default, set the module author to the currently logged in user (the creator).
-              $customWarning=$result;
-              $smarty->assign("newChildModuleID", $moduleID);
-              // once new module is created, save all possible data for it so that fields like authors get saved
-                if (saveAllPossible($_REQUEST, $userInformation, $childModuleInfo)===TRUE) {
-                  $smarty->assign("alert", array("type"=>"positive", 
-                        "message"=>"Module successfully created and saved.") );
+            if($moduleAction=="doRemoveMaterial") { //Try to remove a material.
+              if(!isset($_REQUEST["materialIDToRemove"])) { //Can't remove a material if we don't know the ID.
+                echo '<span class="error">The ID of the material to delete was not specified.  Unable to remove unknown material.</span>';
+              } else {
+                $result=deattatchMaterialFromModule($_REQUEST["materialIDToRemove"], $moduleInfo["moduleID"]); //Deattatch the material from the module.
+                if($result!==TRUE) {
+                  echo '<p class="alert negative"><img src="../lib/look/'.$LOOK_DIR.'/failure.png" alt="Failure"></img> <span class="error">Error removing material (at deattatchMaterialFromModule).</span></p>';
                 } else {
-                    $smarty->assign("alert", array("type"=>"negative", 
-                        "message"=>"Unable to create new module.") );
+                  $result=removeMaterialsByID(array($_REQUEST["materialIDToRemove"]), $MATERIAL_STORAGE_DIR); //Actually remove the material.
+                  if($result!==TRUE) {
+                    echo '<p class="alert negative"><img src="../lib/look/'.$LOOK_DIR.'/failure.png" alt="Failure"></img> <span class="error">Error removing material (at removeMaterialsByID).</span></p>';
+                  } else {
+                    echo '<p class="alert positive"><img src="../lib/look/'.$LOOK_DIR.'/success.png" alt="Success"></img> Successfully removed material.</p>';
+                  }
                 }
-
-		  $validChild = false; // true if child and parent are given
-		  $validParent = false;
-		  // Gets the modules that the user wants to create the relationship between.
-			$newChildID=$childModuleInfo["moduleID"]; 	//could be $newChildID = $moduleID;   
-			$newChild=getModuleByID($newChildID);
-			if ($newChild["moduleID"]==$newChildID) {
-			  $validChild = true;
-			}
-		  }
-		  if ($moduleInfo != FALSE) {
-			$newParentID=$moduleInfo["moduleID"];	 
-			$newParent=getModuleByID($newParentID);
-			if ($newParent["moduleID"]==$newParentID) {
-			  $validParent = true;
-			}
-		  }
-		  
-		  if ($validChild && $validParent) {
-			$duplicateRelationship = FALSE;
-			$currentChildrenID=getChildren($newParentID);
-			foreach ($currentChildrenID as $currentChildID) { // Makes sure the relationship being created doesn't already exist.
-			  if($newChildID == $currentChildID) {
-				$duplicateRelationship = TRUE;
-			  }
-			}
-			$currentParentsID=getParents($newChildID);
-			foreach ($currentParentsID as $currentParentID) {
-			  if($newParentID == $currentParentID) {
-				$duplicateRelationship = TRUE;
-			  }
-			}
-
-			/*
-					  To prevent circular relationships:
-					  ParentID must NOT be ChildID
-					  ParentID must NOT be descendant of ChildID
-					  ChildID must NOT be ancestor of ParentID
-					  */
-			$circularRelationship = FALSE;
-			if ( in_array($newParentID, getDescendants($newChildID)) || in_array($newChildID, getAncestors($newParentID)) ) {
-			  $circularRelationship = TRUE;
-			}
-			
-			
-			if( $duplicateRelationship !== TRUE && $circularRelationship !== TRUE ) { // If it isn't a duplicate, creates relationship and shows
-			  $pcResult=setParentChild($newParentID, $newChildID);					 // according alert.
-			}	
-			
-			if( !empty($pcResult) && $pcResult === TRUE) {
-			  //$smarty->assign("alert", array("type"=>"positive", "message"=>"Successfully Created New Relationship.") );
-				// on success, redirect to materials step in wizard:
-				header( 'Location: materials.php?moduleID='.$moduleInfo["moduleID"] ) ;
-			}
-			else if ($duplicateRelationship == TRUE)  {
-			  $smarty->assign("alert", array("type"=>"negative", "message"=>"You are trying to create a relationship that already exists.") );
-			}
-			else if ($circularRelationship == TRUE)  {
-			  $smarty->assign("alert", array("type"=>"negative", "message"=>"Error. You are trying to create a circular relationship (e.g. one where the given parent is a descendant of the given child).") );
-			}
-			else {		
-			  $smarty->assign("alert", array("type"=>"negative", "message"=>"Error While Creating New Relationship. Please Try Again.") );
-			}
-		  } else {
-			$smarty->assign("alert", array("type"=>"negative", "message"=>"Error creating new relationship. Please be sure to supply both a valid child and a valid parent.") );
-		  }
-		}
-	} else if ($action == "removeChild") { 
-      $deleteChildID=$_REQUEST["childID"];
-      $deleteParentID=$moduleInfo["moduleID"];
-      $deleteresult=removeParentChild($deleteParentID, $deleteChildID);
-      if ($deleteresult === TRUE) {
-        //$smarty->assign("alert", array("type"=>"positive", "message"=>"Successfully Deleted Relationship.") );
-        // on success, redirect to materials step in wizard:
-        header( 'Location: materials.php?moduleID='.$moduleInfo["moduleID"] ) ;
-      } else {
-        $smarty->assign("alert", array("type"=>"negative", "message"=>"Error. Unable to delete relationship.") );
-      }
-      
-    } else if ($action == "doDeleteMaterial") {
-      if(!isset($_REQUEST["materialID"])) { //Can't remove a material if we don't know the ID.
-        $smarty->assign("alert", array("type"=>"negative", 
-				"message"=>"<strong>The ID of the material to delete was not specified.  Unable to remove unknown material.</strong>") );
-      } else {
-        $result=deattatchMaterialFromModule($_REQUEST["materialID"], $moduleInfo["moduleID"]); //Deattatch the material from the module.
-        if($result!==TRUE) {
-          $smarty->assign("alert", array("type"=>"negative", 
-				"message"=>"<strong>Error removing material (at deattatchMaterialFromModule).</strong>") );
-        } else {
-          $result=removeMaterialsByID(array($_REQUEST["materialID"]), '..'.$MATERIAL_STORAGE_DIR); //Actually remove the material.
-          if($result!==TRUE) {
-            $smarty->assign("alert", array("type"=>"negative", 
-				"message"=>"<strong>Error removing material (at removeMaterialsByID).</strong>") );
-          } else {
-            //$smarty->assign("alert", array("type"=>"positive", "message"=>"Successfully removed material.") );
-            // on success, redirect to materials step in wizard:
-            header( 'Location: materials.php?moduleID='.$moduleInfo["moduleID"] ) ;
+              }
+              echo '<p><a href="materials.php?moduleAction=edit&moduleID='.preg_replace('/"/', '/\"/', $moduleInfo["moduleID"]).'">Return to Material List</a></p>';
+            } //End if($moduleAction=="doRemoveMaterial"
           }
-        }
-      }     
-    } else if ($action == "doRenameMaterial") {
-	  if(!isset($_REQUEST["materialID"])) { //Can't remove a material if we don't know the ID.
-        $smarty->assign("alert", array("type"=>"negative", 
-				"message"=>"<strong>The ID of the material to delete was not specified.  Unable to remove unknown material.</strong>") );
-      }else if (!isset($_POST["renameMaterial"])) {
-		$smarty->assign("alert", array("type"=>"negative", 
-				"message"=>"<strong>There was not anything entered in the renaming textbox. Please enter a name or click cancel. </strong>")); 
-	  }else {
-        $result=renameMaterialByID($_REQUEST["materialID"], $_POST["renameMaterial"]); //Deattatch the material from the module.
-        if($result!==TRUE) {
-          $smarty->assign("alert", array("type"=>"negative", 
-				"message"=>"<strong>Error renaming material.</strong>") );
-        } else {
-			//$smarty->assign("alert", array("type"=>"positive", "message"=>"Successfully renamed material.") );
-            // on success, redirect to materials step in wizard:
-            header( 'Location: materials.php?moduleID='.$moduleInfo["moduleID"] ) ;
-		}
-      }
-	}//end action if
-}
-
-/*  getDescendants() - return all descendants of a module with id $moduleID
-              (including itself, its children, its children's children, etc.)
-         NOTE: this function is recursive */
-function getDescendants($moduleID) {
-  $desc = array($moduleID);
-  
-  $children = getChildren($moduleID);
-
-  if (count($children) > 0) {
-    foreach ($children as $child) {
-      $desc = array_merge($desc, getDescendants($child));
-    }
-  }
-  
-  return $desc;
-}
-
-/*  getAncestors() - return all ancestors of a module with id $moduleID
-              (including itself, its parents, its parents's parents, etc.)
-         NOTE: this function is recursive */
-function getAncestors($moduleID) {
-  $ans = array($moduleID);
-  
-  $parents = getParents($moduleID);
-
-  if (count($parents) > 0) {
-    foreach ($parents as $parent) {
-      $ans = array_merge($ans, getAncestors($parent));
-    }
-  }
-  
-  return $ans;
-}
-  
-  $smarty->display('moduleWizard/materials.php.tpl');                  
-?>
+          if($moduleAction=="customError") {
+            /* Don't do anything for a custom error.  customError indicates an appropirate error was already displayed. */
+          }
+          if($moduleAction=="error") {
+            echo '<p><span class="error">Unknown error.</span></p>';
+          }
+        } else { //This else block indicates we're logged in, but don't have upload rights.
+          echo '<h1>Insufficient Permissions To Perform This Action</h1>';
+          echo '<p class="alert negative"><img src="../lib/look/'.$LOOK_DIR.'/failure.png" alt="Failure"> <span class="error">You do not have sufficient rights to create or edit ';
+          echo 'modules on this collection.</span></p>';
+          echo '<p>To create or edit modules, you must have a higher privilege level.  Contact the collection maintainer for more information.</p>';
+        }       
+      ?>
+    </div> <!-- End mainContentArea div -->
+    <div id="right-sidebar"></div>
+  </div>
+</div>
+<div id="footer">
+  <?php showFooter(); ?>
+</div>
+</body>
+</html>

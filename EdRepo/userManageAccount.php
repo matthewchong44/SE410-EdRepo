@@ -13,7 +13,6 @@
  *  Notes: (none) 
  ******************************************************************************************************************************/
 
-  require("lib/backends/validate.php"); 
   require("lib/config.php");
 
   $smarty->assign("title", $COLLECTION_NAME . " - My Account");
@@ -74,7 +73,7 @@ if(isset($userInformation)) {
                              $_REQUEST["email"],
                              $_REQUEST["firstName"],
                              $_REQUEST["lastName"], 
-                             "", "", "", TRUE, TRUE, TRUE);
+                             "", "", TRUE, TRUE);
                              
         if($result!==TRUE) {
           $smarty->assign("alert", array("type"=>"negative", "message"=>"Unable to update your account. Please check your changes below and try again.") );
@@ -83,8 +82,7 @@ if(isset($userInformation)) {
                                                 "email"=>$_REQUEST["email"],
                                                 "firstName"=>$_REQUEST["firstName"],
                                                 "lastName"=>$_REQUEST["lastName"],
-                                                "type"=>$userInformation["type"], 
-												"groups"=>$userInformation["groups"]) );
+                                                "type"=>$userInformation["type"]) );
         } else {
           $smarty->assign("error", "");        
           $smarty->assign("alert", array("type"=>"positive", "message"=>"Information Successfully Updated.") );
@@ -96,25 +94,23 @@ if(isset($userInformation)) {
     $smarty->assign("error", "");
     
   } elseif($action=="doChangePassword") { //doChangePassword action actually tries to change the user's password.
-      $hash = $userInformation["password"];
-      $salt = substr($hash, 0, 64);
-      $email = $userInformation["email"];
       if(!isset($_REQUEST["newPassword1"]) || !isset($_REQUEST["newPassword2"]) || !isset($_REQUEST["currentPassword"])) {
         $smarty->assign("alert", array("type"=>"negative", "message"=>"Unable to change your password.  One or more required pieces of information is missing.") );
         $smarty->assign("error", "MissingInformation");
-      } elseif(secureHash($_REQUEST["currentPassword"], NULL, $salt) != $hash) {
+      } elseif($_REQUEST["currentPassword"]!=$userInformation["password"]) {
         $smarty->assign("alert", array("type"=>"negative", "message"=>"Unable to change your password.  The password entered as your current password is incorrect.") );
         $smarty->assign("error", "IncorrectPassword");
       } elseif($_REQUEST["newPassword1"]!=$_REQUEST["newPassword2"]) {
         $smarty->assign("alert", array("type"=>"negative", "message"=>"Unable to change your password.  The two passwords entered for your new password do not match.") );
         $smarty->assign("error", "PasswordMismatch");
       } else {
+      
         $result=editUserByID($userInformation["userID"], 
                              $userInformation["email"], 
                              $userInformation["firstName"], 
                              $userInformation["lastName"], 
                              $_REQUEST["newPassword1"], 
-                             "", "", FALSE, FALSE, TRUE, TRUE, TRUE);
+                             "", FALSE, TRUE);
                              
         if($result===TRUE) { //Password change successful?
           $smarty->assign("alert", array("type"=>"positive", "message"=>"Your password has been successfully changed.") );

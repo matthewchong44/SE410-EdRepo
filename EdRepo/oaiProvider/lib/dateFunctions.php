@@ -35,7 +35,7 @@ function dateNotBeforeEarliestDatestamp($date) {
   if($date=="*") { //A date of "*" means "all dates" which means it can't possibly be before the earliest datestamp.  Return TRUE in this case.
     return TRUE;
   }
-  require(__DIR__ . "/config.php"); //Load OAI-PMH configuration
+  require("config.php"); //Load OAI-PMH configuration
   $dateGiven=strtotime($date); //Convert the date given into an easy-to-use integer.
   $earliest=strtotime($EARLIEST_DATESTAMP); //Convert the earliest datestamp into an easy-to-use integere
   if($dateGiven<$earliest) { //If the date given is less than the earliest date (i.e. it is earlier), return FALSE.
@@ -60,7 +60,7 @@ function dateFormatOkay($date) {
    (for example that they are the smae granularity).  At this time it will NOT check if $from is greater than $until
    (which would also be an invalid combination). */
 function validDates($from, $until) {
-  require(__DIR__ . "/config.php");
+  require("config.php");
   $dateRegex = "'\b[0-9]{4}[- /.](0?[1-9]|1[012])[- /.](0?[1-9]|[12][0-9]|3[01])\b'";
   $dateTimeRegex = "'\b[0-9]{4}[- /.](0?[1-9]|1[012])[- /.](0?[1-9]|[12][0-9]|3[01])[T: /.](0?[0-9]{2})[: /.](0?[0-9]{2})[: /.](0?[0-9]{2})Z\b'";
     

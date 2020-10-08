@@ -53,7 +53,7 @@
 <p>To create a new account, fill in all of the information below and select "Create Account".</p>
 {if $NEW_ACCOUNTS_REQUIRE_APPROVAL == true}
   <p><span class="note">Your account will require approval before it becomes active.</span>  The maintainer of this collection requires 
-  that new accounts be approved before they can be used.  Once your account is created, it will not be accessible until it is approved.</p>
+  that new accounts be approved before they can be used.  Once your account is created, it will not be accessable until it is approved.</p>
 {/if}
 
 <form name="createAccountFrom" action="createAccount.php" method="post">

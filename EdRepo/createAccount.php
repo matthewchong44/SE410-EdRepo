@@ -11,8 +11,7 @@
  *
  *  Notes: (none) 
  ******************************************************************************************************************************/
- 
- require("lib/backends/validate.php"); 
+  
  require("lib/config.php");
  //require("lib/backends/mysql/validate.php");
 
@@ -71,9 +70,9 @@ if ($backendCapable == true && $loggedIn == false) { //The back-end supports acc
       $smarty->assign("result", "");
     } else { //Looks like the passwords match and we have everything we need to try to create the account, so try and check for errors.
       if($NEW_ACCOUNTS_REQUIRE_APPROVAL==TRUE) {
-        $result=createUser($_REQUEST["email"], $_REQUEST["firstName"], $_REQUEST["lastName"], $_REQUEST["password1"], "Pending", "Temp", "FALSE");
+        $result=createUser($_REQUEST["email"], $_REQUEST["firstName"], $_REQUEST["lastName"], $_REQUEST["password1"], "Pending");
       } else {
-        $result=createUser($_REQUEST["email"], $_REQUEST["firstName"], $_REQUEST["lastName"], $_REQUEST["password1"], $NEW_ACCOUNTS_ACCOUNT_TYPE, "Temp", "FALSE");
+        $result=createUser($_REQUEST["email"], $_REQUEST["firstName"], $_REQUEST["lastName"], $_REQUEST["password1"], $NEW_ACCOUNTS_ACCOUNT_TYPE);
       }
       $smarty->assign("result", $result);
       if($result=="BadPassword")
@@ -85,14 +84,8 @@ if ($backendCapable == true && $loggedIn == false) { //The back-end supports acc
       }
       /* Check for errors creating account, and display a form allowing users to try again on error. */
       else if($result===FALSE || $result=="BadEmail" || $result=="EmailAlreadyExists" || $result=="BadPassword" || $result=="BadFirstName" || $result=="BadLastName" || $result=="BadType") {
-        // Check to see if email exists in a deleted account
-        if($result=="EmailAlreadyExists" && count($arrayUsers=searchUsers(array("email"=>$_REQUEST["email"])))>0){
-          $smarty->assign("alert", array("type"=>"negative", "message"=>"Failed to create your account due because 
-          this email is tied to a deleted account. Please contact a system administrator to restore account.") );
-        } else {
-          $smarty->assign("alert", array("type"=>"negative", "message"=>"Failed to create your account due to one or more errors.  
-          Please corrent any errors and try again.") );
-        }
+        $smarty->assign("alert", array("type"=>"negative", "message"=>"Failed to create your account due to one or more errors.  
+        Please corrent any errors and try again.") );
         $smarty->assign("firstName", $_REQUEST["firstName"]);      
         $smarty->assign("lastName", $_REQUEST["lastName"]);
         $smarty->assign("email", $_REQUEST["email"]);
@@ -115,23 +108,19 @@ if ($backendCapable == true && $loggedIn == false) { //The back-end supports acc
             $message=$message."This message was automatically generated.  Please do not reply.  Contact the collection maintainer if your ";
             $message=$message."you like to stop receiving these alerts or would like to change other preferences.";
             $message=wordwrap($message, 70);
-			      $headers = "From: EdRepo <noreply@edrepo.com>";
-			
             /* Send the email to any users in the specified classes to send new user account alerts to. */
             for($i=0; $i<count($EMAIL_MODERATORS_ON_NEW_USERS_PENDING_APPROVAL_CLASS); $i++) {
               $users=searchUsers(array("type"=>$EMAIL_MODERATORS_ON_NEW_USERS_PENDING_APPROVAL_CLASS[$i])); //Get all users in the current class being checked
               for($j=0; $j<count($users); $j++) { //Loop through found users of the current type/class.
-                print_r("MADE IT TO MAIL"); 
-                mail($users[$j]["email"] ,$subject, $message, $headers);
+                mail($users[$j]["email"] ,$subject, $message);
               }
             }
             /* Send the email to any additional addresses to send new user account alerts to. */
             for($i=0; $i<count($EMAIL_MODERATORS_ON_NEW_USERS_PENDING_APPROVAL_LIST); $i++) {
-              print_r("MADE IT TO MAIL2"); 
-              mail($EMAIL_MODERATORS_ON_NEW_USERS_PENDING_APPROVAL_LIST[$i], $subject, $message, $headers);
-            }			
+              mail($EMAIL_MODERATORS_ON_NEW_USERS_PENDING_APPROVAL_LIST[$i], $subject, $message);
+            }
           } // end if($EMAIL_MODERATORS_ON_NEW_USERS_PENDING_APPROVAL==TRUE)
-        } // end if($NEW_ACCOUNTS_REQUIRE_APPROVAL==TRUE)		
+        } // end if($NEW_ACCOUNTS_REQUIRE_APPROVAL==TRUE)
       } // end check for creation error
     } // end check for input error
   } // end action if

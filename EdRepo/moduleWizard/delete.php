@@ -18,6 +18,7 @@
  ******************************************************************************************************************************/
   
   require("../lib/config.php");
+  require("../lib/moduleEditUploadHelpers.php");
 
   $smarty->assign("title", $COLLECTION_NAME . " - Delete Module");
     // title of this page. For most pages: &COLLECTION . " - Title" , default: $COLLECTION_NAME
@@ -80,53 +81,50 @@
   
   // if user has permission, and no error was found, continue
 if($hasPermission==TRUE && $action!="error") {
+    if($action=="delete") {
+      //Display a confirmation to delete if the action is to "delete"
+      // (done by Smarty template)
+      
+      // save all data first
+      if(saveAllPossible($_REQUEST, $userInformation, $moduleInfo)===TRUE) {
+        $smarty->assign("alert", array("type"=>"positive", 
+                "message"=>"Module progress saved.") );
+      } else {
+        $smarty->assign("alert", array("type"=>"negative", 
+                "message"=>"Unable to save module progress.") );
+      }
+    }
     
-    echo('Got to delete.php'); 
-
-
     if($action=="doDelete") {
-        /* Deleting a module involves removing all topics, categories, types, prereqs, and objectives, and materials attached to the module, and 
+        /* Deleting a module involves removing all topics, categories, prereqs, and objectives, and materials attached to the module, and 
            then removing the module.  Don't remove materials which are also used by other modules, however. */
         $materials=getAllMaterialsAttatchedToModule($moduleInfo["moduleID"]); //Get a list of all materials owned by this module.
-        $results=array();
-        $results[]=setModulePrereqs($moduleInfo["moduleID"], array()); //Remove all prereqs for the module.
-        $results[]=setModuleTopics($moduleInfo["moduleID"], array()); //Remove all topics for the module.
-        $results[]=setModuleObjectives($moduleInfo["moduleID"], array()); //Remove all objectives for the module.
-        $results[]=setModuleAuthors($moduleInfo["moduleID"], array()); //Remove all authors from the module.
+        $result=setModulePrereqs($moduleInfo["moduleID"], array()); //Remove all prereqs for the module.
+        $result=setModuleTopics($moduleInfo["moduleID"], array()); //Remove all topics for the module.
+        $result=setModuleObjectives($moduleInfo["moduleID"], array()); //Remove all objectives for the module.
+        $result=setModuleAuthors($moduleInfo["moduleID"], array()); //Remove all authors from the module.
         if(in_array("UseCategories", $backendCapabilities["write"])) { //Does the back-end support writing categories?
-          $results[]=setModuleCategories($moduleInfo["moduleID"], array()); //Remove all categories from the module.
-        }
-        if(in_array("UseTypes", $backendCapabilities["write"])) { //Does the back-end support writing types?
-          $results[]=setModuleTypes($moduleInfo["moduleID"], array()); //Remove all types from the module.
+          $result=setModuleCategories($moduleInfo["moduleID"], array()); //Remove all categories from the module.
         }
         for($i=0; $i<count($materials); $i++) { //Scan all materials attatched to the module.  If they are not attatched to any other modules, delete them.
-          $results[]=deattatchMaterialFromModule($materials[$i], $moduleInfo["moduleID"]);
+          $result=deattatchMaterialFromModule($materials[$i], $moduleInfo["moduleID"]);
           if(count(getAllModulesAttatchedToMaterial($materials[$i])<=1)) { //If one or fewer modules are attatched to the material, than the material must not be attached to any other modules.  Delete it.
-            $result=removeMaterialsByID(array($materials[$i]), '..'.$MATERIAL_STORAGE_DIR);
+            $result=removeMaterialsByID(array($materials[$i]), $MATERIAL_STORAGE_DIR);
           }
         }
-        
-        // remove all parent-child relationships involving this module
-        $parents = getParents($moduleInfo["moduleID"]);
-        foreach($parents as $parent) {
-          $results[]=removeParentChild($parent, $moduleInfo["moduleID"]);
-        }
-        $children = getChildren($moduleInfo["moduleID"]);
-        foreach($children as $child) {
-          $results[]=removeParentChild($moduleInfo["moduleID"], $child);
-        }
-        
-        $results[]=removeModulesByID(array($moduleInfo["moduleID"]));
-        if ( !in_array(FALSE, $results) ) {
+        $result=removeModulesByID(array($moduleInfo["moduleID"]));
+        if ($result==TRUE) {
           $smarty->assign("alert", array("type"=>"positive", 
                 "message"=>"Module Deleted.") );
-        } else { //This else block runs if an error was encountered
+        } else { //This else block runs if the status of the module to deletes in not InProgress
           $smarty->assign("alert", array("type"=>"negative", 
-                "message"=>"Error. Unable to delete this module.") );
+                "message"=>"Unable to delete this module.  Module status either active or waiting for moderation.") );
         }
     }
+  
 }      
+
         
-  $smarty->display("moduleWizard/delete.php.tpl");
+  $smarty->display("delete.php.tpl");
   
   ?>

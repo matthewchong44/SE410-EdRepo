@@ -27,27 +27,19 @@
   
   $smarty->assign("alert", array("type"=>"", "message"=>"") );
   
-  /* To prevent against people abusing this page to edit (or possibly create) any page in the lib/staticContent subdirectory, we'll check to make 
-    sure the page given in the $_REQUEST["page"] parameter is a valid page we can edit.  This means you MUST add all pages which can be edited here!
-    If the page given isn't found here, or nothing ws given, $pagename will be left as FALSE, indicating no valid page was found.  Otheriwse, 
-    $pagename will be set to a friendly, human-readable name for the page. */
-  $pagename="Footer"; //By default a valid page wasn't given.
-  $file="footer.html";
-  
-  
-  if ( isset($_REQUEST["alert"]) ) {
-    $alert = $_REQUEST["alert"];
-    
-    if ($alert == "success") {
-      $smarty->assign("alert", array("type"=>"positive", "message"=>"Successfully updated ".$pagename.".") );
-    }
-  }
   
   $action="displayEdit"; //Default action is to display an editing panel.
   if(isset($_REQUEST["action"])) {
     $action=$_REQUEST["action"];
   }
   $smarty->assign("action", $action);
+  
+  /* To prevent against people abusing this page to edit (or possibly create) any page in the lib/staticContent subdirectory, we'll check to make 
+    sure the page given in the $_REQUEST["page"] parameter is a valid page we can edit.  This means you MUST add all pages which can be edited here!
+    If the page given isn't found here, or nothing ws given, $pagename will be left as FALSE, indicating no valid page was found.  Otheriwse, 
+    $pagename will be set to a friendly, human-readable name for the page. */
+  $pagename="Footer"; //By default a valid page wasn't given.
+  $file="footer.html";
 
 
 if (isset($userInformation) && $userInformation["type"]=="Admin") { //This else block is if we're logged in as an admin.
@@ -85,10 +77,9 @@ $FOOTER["CONTENT"] = file_get_contents($file_location);
       $result1=fwrite($fContent, $_REQUEST["content"]);
       $result2=fwrite($fSettings, $settings);
       if($result1!==FALSE && $result2!==FALSE) { //Successful writing file.
-        header('Location: configureFooter.php?alert=success');
-        //$smarty->assign("alert", array("type"=>"positive", "message"=>"Successfully updated ".$pagename.".") );
+        $smarty->assign("alert", array("type"=>"positive", "message"=>"Successfully updated ".$pagename.".") );
         // clean up HTML tags for proper display in textarea/database storage
-        //$smarty->assign("cleanFooterContent", htmlspecialchars($FOOTER["CONTENT"], ENT_NOQUOTES) );
+        $smarty->assign("cleanFooterContent", htmlspecialchars($FOOTER["CONTENT"], ENT_NOQUOTES) );
         //require("../lib/config/footer.php"); // require footer config again to get new settings  << DOESN'T WORK
       } else { //Failed to write to file.
         $smarty->assign("alert", array("type"=>"negative", "message"=>"Unable to update ".$pagename." due to error opening file.<br />

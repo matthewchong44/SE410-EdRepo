@@ -26,7 +26,7 @@
 {if $loginSuccess != true}
 <p><a class="button" href="createAccount.php">Create New Account</a></p>
 
-<form name="loginForm" method="post" action="loginLogout.php">
+<form name="loginForm" method="get" action="loginLogout.php">
     <fieldset>
     <input type="hidden" name="action" value="login" readonly="readonly"></input>
     <div class="fieldRow">

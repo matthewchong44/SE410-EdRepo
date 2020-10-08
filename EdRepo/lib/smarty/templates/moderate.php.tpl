@@ -9,29 +9,6 @@
 
 <div id="content">
 
-{literal}
-<script type="text/javascript">
-  $(document).ready(function() {
-  
-    // check/uncheck all checkboxes when .checkAll is clicked
-    $('.checkAll').click(function() {
-      var checked_status = this.checked;
-      $('[type=checkbox]').each( function() {
-        $(this).attr('checked', checked_status) 
-      } );
-    });
-    
-    // uncheck checkAll if one of the others is unchecked
-    $('[type=checkbox]').click(function() {
-      if (!this.checked) {
-        $('.checkAll').attr('checked', false);
-      }
-    });
-    
-  });
-</script>
-{/literal}
-
 <h1>{$pageName|default:"404 Error"}</h1>
 
 {if $alert.message != ""}
@@ -43,17 +20,6 @@
       {/if}
       
         {$alert.message}
-    </p>
-{/if}
-{if $alert2.message != ""}
-    <p class="alert {$alert2.type|default:"positive"}">
-      {if $alert2.type == "negative"}
-        <img src="{$baseDir}lib/look/{$LOOK_DIR}/failure.png" alt="Failure: " />
-      {else}
-        <img src="{$baseDir}lib/look/{$LOOK_DIR}/success.png" alt="Success: " />
-      {/if}
-      
-        {$alert2.message}
     </p>
 {/if}
 
@@ -72,10 +38,8 @@ Please log into an account with sufficient privileges to perform this action.</p
 
 {else} {* no immediate error found, continue *}
 
-{if $action == "display" || $action == "Approve" || $action == "Deny" || $action == "ApproveFamily" || $action == "ApproveFamilySelected" || $action == "ApproveSelected" || $action == "DenySelected"}
+{if $action == "display" || $action == "Approve" || $action == "Deny"}
     {* always display list of modules pending moderation *}
-    
-<p><a class="button" href="moduleManagement.php">Manage Active Modules</a></p>
 
 <form name="filter" action="moderate.php" method="get">
     <input type="hidden" readonly="readonly" name="action" value="filter"></input>
@@ -90,17 +54,13 @@ Please log into an account with sufficient privileges to perform this action.</p
     <p>There are currently no modules pending moderation.</p>
     {/if}
 {else} {* display found modules *}
-<form method="get" action="moderate.php" style="border: 0; padding: 0;">
 <table class="sortable moduleInformationView">
     <thead>
         <tr>
-        <th class="sorttable_nosort">
-          <input type="checkbox" name="checkAll" value="checkAll" class="checkAll" />
-        </th>
         <th>ID</th>
         <th>Title</th>
         <th>Author</th>
-        {if $ENABLE_VERSIONS == true}<th>Version</th>{/if}
+        <th>Version</th>
         <th>Date Created</th>
         {*<th>Status</th>*} {* showing status on this page is likely *}
                             {* redundant because all modules should be pending moderation *}
@@ -110,30 +70,23 @@ Please log into an account with sufficient privileges to perform this action.</p
     <tbody>
      {foreach $modules as $module}
         <tr>
-        <td><input type="checkbox" name="moduleIDs[]" value="{$module.moduleID}" /></td>
         <td>{$module.moduleID}</td>
         <td><a href="viewModule.php?moduleID={$module.moduleID}&forceView=true">{$module.title}</a></td>
         <td>{$module.authorFirstName} {$module.authorLastName}</td>
-        {if $ENABLE_VERSIONS == true}<td>{$module.version}</td>{/if}
-        <td>{$module.dateTime}</td>
+        <td>{$module.version}</td>
+        <td>{$module.date}</td>
         {*<td>{$module.status}</td>*}
         <td>
-            <a class="button" href="moderate.php?moduleID={$module.moduleID}&action=Approve">Approve</a>
-            <a class="button" href="moderate.php?moduleID={$module.moduleID}&action=Deny">Deny</a> 
-			{if references($module.moduleID) != FALSE}
-			<a class="button" href="moderate.php?moduleID={$module.moduleID}&action=ApproveFamily">Approve Family</a>
-			{/if}
+            <form method="get" action="moderate.php">
+                <input type="hidden" readonly="readonly" name="moduleID" value="{$module.moduleID}"></input>
+                <input type="submit" class="button" name="action" value="Approve"></input> 
+                <input type="submit" class="button" name="action" value="Deny"></input>
+            </form>
         </td>
         </tr>
       {/foreach}
     </tbody>
-</table>
-<p>
-  <input class="button" type="submit" name="approveSelected" value="Approve Selected" />
-  <input class="button" type="submit" name="denySelected" value="Deny Selected" />
-  <!--<input class="button" type="submit" name="approveFamilySelected" value="Approve Family Selected" />-->
-</p>
-</form>
+    </table>
 {/if} {* end 'count modules' if *}
 
 {else}

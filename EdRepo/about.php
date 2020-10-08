@@ -23,6 +23,6 @@
          make a page which can grabe lib/staticContent/home.html, allow users to edit the content, and save it back to that file. */
   $smarty->assign("content", file_get_contents("lib/staticContent/about.html") );
   
-  $smarty->display('about.php.tpl');
+  $smarty->display('static.tpl');
   
 ?>

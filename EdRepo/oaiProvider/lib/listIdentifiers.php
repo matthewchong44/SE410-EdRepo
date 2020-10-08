@@ -16,15 +16,15 @@
 	as described by the OAI-PMH documentation for the parameters.
     @parm $metadataPrefix: The metadataPrefix to return results in.  Currently only "oai_dc" is supported.*/
 function listIdentifiers($metadataPrefix) {
-  require(__DIR__ . "/config.php"); //Load provider configuration
+  require("config.php"); //Load provider configuration
   $backendCapabilities=getBackendCapabilities(); //Get all backend capabilities, since they will be needed to fetch identifiers.
   
   if(!in_array("UseModules", $backendCapabilities["read"]) || !in_array("SearchModulesByDate", $backendCapabilities["read"])) { //The backend must support both working with modules and searching modules by date in read more to use this.
     badArgument("noRecordsMatch", "", "This collection's backend storage system is not capable of serving ListIdentifiers requests.");
   }
   
-  if($metadataPrefix != "oai_dc" && $metadataPrefix != "nsdl_dc") { /* We only support oai_dc and nsdl_dc */
-    badArgument("cannotDisseminateFormat", "metadataPrefix=\"".$metadataPrefix."\"", "This repository only supports the following for metadataPrefix: oai_dc, nsdl_dc");
+  if($metadataPrefix != "oai_dc") { /* We only support oai_dc */
+    badArgument("cannotDisseminateFormat", "metadataPrefix=\"".$metadataPrefix."\"", "This repository only supports the \"oai_dc\" metadataPrefix.");
   }
   
   $set=FALSE; //Default to assume no set was asked for.
@@ -130,7 +130,7 @@ function listIdentifiers($metadataPrefix) {
     for($i=0; $i<count($moduleResults); $i++) { //Print all the modules found.
       echo "<header>\n";
       echo "<identifier>".urlencode(getBaseRepositoryIdentifier()."/module-".$moduleResults[$i]["moduleID"])."</identifier>\n";
-      echo "<datestamp>".datesToOAI($moduleResults[$i]["dateTime"])."</datestamp>\n";
+      echo "<datestamp>".datesToOAI($moduleResults[$i]["date"])."</datestamp>\n";
       echo "<setSpec>modules</setSpec>\n";
       echo "</header>\n";
     }
@@ -139,7 +139,7 @@ function listIdentifiers($metadataPrefix) {
     for($i=0; $i<count($materialResults); $i++) { //Print all the materials found.
       echo "<header>\n";
       echo "<identifier>".urlencode(getBaseRepositoryIdentifier()."/material-".$materialResults[$i]["materialID"])."</identifier>\n";
-      echo "<datestamp>".datesToOAI($materialResults[$i]["dateTime"])."</datestamp>\n";
+      echo "<datestamp>".datesToOAI($materialResults[$i]["date"])."</datestamp>\n";
       echo "<setSpec>materials</setSpec>\n";
       echo "</header>\n";
     }

@@ -12,15 +12,15 @@ function listMetadataFormats() {
     }
     
     /*If we got to here, we know they requested a vaild record.  We only support oai_dc, though.*/
-    listFormats($_REQUEST["identifier"]);
+    listOaiDC($_REQUEST["identifier"]);
   } /* End of if($_REQUEST["identifier"]) */
   else { /* Run is no identifier is given. */
-    listFormats("");
+    listOaiDC("");
   }
 }
   
-function listFormats($identifier) {
-  require(__DIR__ . "/config.php");
+function listOaiDC($identifier) {
+  require("config.php");
   echo $OAI_TOP."\n";
   echo "<responseDate>".strftime("%Y-%m-%dT%H:%M:%SZ", time())."</responseDate>\n";
   if($identifier!="") {
@@ -36,11 +36,6 @@ function listFormats($identifier) {
   echo "  <metadataPrefix>oai_dc</metadataPrefix>\n";
   echo "  <schema>http://www.openarchives.org/OAI/2.0/oai_dc.xsd</schema>\n";
   echo "  <metadataNamespace>http://www.openarchives.org/OAI/2.0/oai_dc/</metadataNamespace>\n";
-  echo " </metadataFormat>\n";
-  echo " <metadataFormat>\n";
-  echo "  <metadataPrefix>nsdl_dc</metadataPrefix>\n";
-  echo "  <schema>http://ns.nsdl.org/schemas/nsdl_dc/nsdl_dc_v1.02.xsd</schema>\n";
-  echo "  <metadataNamespace>http://ns.nsdl.org/nsdl_dc_v1.02/</metadataNamespace>\n";
   echo " </metadataFormat>\n";
   echo "</ListMetadataFormats>\n";
   echo "</OAI-PMH>\n";

@@ -9,8 +9,7 @@
 
 <div id="content">
 
-{if $action=="unLock"}<h1>Unlock Account</h1>
-{else}<h1>{$pageName|default:"404 Error"}</h1>{/if}
+<h1>{$pageName|default:"404 Error"}</h1>
 
 {if $alert.message != ""}
     <p class="alert {$alert.type|default:"positive"}">
@@ -46,9 +45,8 @@ function quickValidateAllFormFields() {
 <h2>Please Use The Your "My Account" Panel to Change Your Password</h2>
 <p>You are currently logged in.  To change your password, use the your "My Account" panel.</p>
   
-{else} {* free to continue *}
+{else} {* display form *}
 
-{if $action == "display"}
 <p>To recover your password, enter your email address below and click "Recover Password" to send your password to your email address.</p>
 <form name="passwordRecoveryForm" method="post" action="forgotPassword.php">
     <input type="hidden" readonly="readonly" name="action" value="recover"></input>
@@ -62,38 +60,12 @@ function quickValidateAllFormFields() {
     </fieldset>
 </form>
 
-{elseif $action == "recover"}
-{* an alert will be sent, no need for other output here *}
-
-{elseif $action == "reset" || $action == "doReset" || $action == "unLock"}
- {if $showForm == true}
-<p>To reset your password, enter your new password twice in the form below.</p>
-<form name="passwordRecoveryForm" method="post" action="forgotPassword.php">
-    <input type="hidden" readonly="readonly" name="action" value="doReset"></input>
-    <input type="hidden" readonly="readonly" name="userID" value="{$userID}"></input>
-    <input type="hidden" readonly="readonly" name="token" value="{$token}"></input>
-    <div class="fieldRow">
-        <label for="password1"><strong>New Password:</strong></label>
-        <input type="password" name="password1"></input>
-    </div>
-    <div class="fieldRow">
-        <label for="password2"><strong>Retype Password:</strong></label>
-        <input type="password" name="password2"></input>
-    </div>
-    
-    <fieldset class="buttons">
-        <input type="submit" class="button" name="sub" value="Save Password"></input>
-    </fieldset>
-</form> 
- 
- {/if} {* end showForm if *}
-
-{else}
-<p>Unable to process your request.  An unknown action was specified</p>
-
-{/if} {* end action if *}
 
 {/if} {* end backendCapable/loggedIn if *}
+
+{if $action != "display" && $action != "recover"}
+<p>Unable to process your request.  An unknown action was specified</p>
+{/if}
 
 </div>
 

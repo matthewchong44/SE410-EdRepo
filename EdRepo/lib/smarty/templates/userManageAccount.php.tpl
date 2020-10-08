@@ -50,11 +50,10 @@ The backend in use does not support working with users in read and/or write mode
     <tr><td class="highlight">Last Name</td><td>{$userInformation.lastName}</td></tr>
     <tr><td class="highlight">Email Address</td><td>{$userInformation.email}</td></tr>
     <tr><td class="highlight">Type{if $userInformation.type == "Admin"}*{/if}</td><td>{$userInformation.type}</td></tr>
-	<tr><td class="highlight">Group{if $userInformation.groups == "Admin"}*{/if}</td><td>{$userInformation.groups}</td></tr>
 </table>
 
 {if $userInformation.type =="Admin"}
-<p>* To change account types, use the <a href="admin/userManagement.php">User Management</a> tool.</p>
+<p>* To change account types, use the <a href="userManagement.php">User Management</a> tool.</p>
 {/if}
 {* END ACTION : DISPLAY ******************************************************}
 
@@ -80,10 +79,6 @@ The backend in use does not support working with users in read and/or write mode
         <label for="type"><strong>Type{if $userInformation.type == "Admin"}*{/if}:</strong></label>
         {$userInformation.type}
     </div>
-	<div class="fieldRow">
-        <label for="type"><strong>Group{if $userInformation.groups == "Admin"}*{/if}:</strong></label>
-        {$userInformation.groups}
-    </div>
     </fieldset>
     
     <fieldset class="buttons">
@@ -93,7 +88,7 @@ The backend in use does not support working with users in read and/or write mode
 </form>
 
 {if $userInformation.type == "Admin"}
-<p>* To change account types, use the <a href="admin/userManagement.php">User Management</a> tool.</p>
+<p>* To change account types, use the <a href="userManagement.php">User Management</a> tool.</p>
 {/if}
 {* END ACTION: DISPLAY/DO EDIT ***********************************************}
 

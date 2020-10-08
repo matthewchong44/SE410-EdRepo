@@ -11,35 +11,30 @@
     <title>{$title|default:"EdRepo"}</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <link rel="stylesheet" type="text/css" href="{$baseDir}lib/look/{$LOOK_DIR|default:'default'}/main.css" />
-    <link rel ="icon" type="image/ico" href="{$baseDir}/lib/look/{$LOOK_DIR|default:'default'}/{$HEADER.ICON_NAME|default:'icon.ico'}" />
     <script src="{$baseDir}lib/sorttable/sorttable.js" type="text/javascript"></script>
     <script src="{$baseDir}lib/jquery/jquery.js" type="text/javascript"></script>
-    <script src="{$baseDir}lib/jquery/jquery-functions.js" type="text/javascript"></script>	
+    <script src="{$baseDir}lib/jquery/jquery-functions.js" type="text/javascript"></script>
 </head>
 
 <body>
 <div id="container">
 <div id="header">
     <div id="top-bar">
-        <form method="get" action="{$baseDir}browse.php" name="search-form" id="search">
-            <input type="text" name="moduleTitle" />
-            <input type="submit" class="button" value="Search" />
+        <form method="get" action="{$baseDir}search.php" name="search-form" id="search">
+            <input type="text" name="title" />
+            <input type="submit" class="button" value="Search" name="submit" />
         </form>
-		
+        
       {if $loggedIn eq "true"}
         <a href="{$baseDir}userManageAccount.php" id="account-btn">My Account <img src="{$baseDir}/lib/look/{$LOOK_DIR|default:'default'}/down-arrow.png" alt="&darr;" /></a>
         <div id="account">
             <ul>
               <li><a href="{$baseDir}userManageAccount.php">My Account</a></li>
               <li><a href="{$baseDir}showMyModules.php">My Modules</a></li>
-              {if $user.type eq "Submitter" || $user.type eq "Editor" || $user.type eq "Admin"}
               <li><a href="{$baseDir}moduleWizard/index.php">Create New Module</a></li>
-              {/if}
-            </ul>
               <hr />
-            <ul>
               <li><a href="{$baseDir}loginLogout.php?action=logout">Logout</a></li>
-            </ul>
+          </ul>
         </div>
       {else}
         <a href="{$baseDir}loginLogout.php" id="account-btn">Login <img src="{$baseDir}lib/look/{$LOOK_DIR|default:'default'}/down-arrow.png" alt="&darr;" /></a>
@@ -59,21 +54,16 @@
       {/if}
     </div> <!-- end top-bar -->
     
-    <h1><a href="./index.php">
-      {if $HEADER.LOGO == 'text'}
-        {$COLLECTION_NAME|default:'EdRepo Collection'}
-      {elseif $HEADER.LOGO == 'custom'}
-      <img src="{$baseDir}/lib/look/{$LOOK_DIR}/{$HEADER.LOGO_NAME}" alt="{$COLLECTION_NAME|default:'EdRepo Collection'}" />
-      {else}
-      <img src="{$baseDir}/lib/look/default/logo.png" alt="{$COLLECTION_NAME|default:'EdRepo Collection'}" />
-      {/if}
-    </a></h1>
+    <a href="./index.php"{if $HEADER.SHOW_NAME!=true} id="logo"{/if}> {* if only show name is set, hide "logo" id that displays logo *}
+        <h1>EdRepo Test Collection</h1>
+    </a>
     
-    {$HEADER.CONTENT}	
+    {$HEADER.CONTENT}
     
     <div id="nav"><ul>
         <li{if $tab eq "home"} class="active"{/if}><a href="{$baseDir}index.php">Home</a></li>
-        <li{if $tab eq "browse"} class="active"{/if}><a href="{$baseDir}browse.php">Browse All</a></li>
+        <li{if $tab eq "about"} class="active"{/if}><a href="{$baseDir}about.php">About</a></li>
+        <li{if $tab eq "browse"} class="active"{/if}><a href="{$baseDir}browse.php">Browse</a></li>
     {if $loggedIn eq "true"}
       {if $user.type eq "Submitter" || $user.type eq "Editor" || $user.type eq "Admin"}
         <li{if $tab eq "modules"} class="active"{/if}><a href="{$baseDir}showMyModules.php">My Modules</a></li>
@@ -85,6 +75,5 @@
         <li{if $tab eq "admin"} class="active"{/if}><a href="{$baseDir}admin/index.php">Admin</a></li>
       {/if}
     {/if}
-        <li{if $tab eq "about"} class="active"{/if}><a href="{$baseDir}about.php">About</a></li>
     </ul></div>
 </div>

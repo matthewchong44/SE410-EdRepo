@@ -12,7 +12,6 @@
  *  Notes: (none) 
  ******************************************************************************************************************************/
   
-  require("lib/backends/validate.php"); 
   require("lib/config.php");
 
   $smarty->assign("title", $COLLECTION_NAME);
@@ -25,34 +24,7 @@
          make a page which can grabe lib/staticContent/home.html, allow users to edit the content, and save it back to that file. */
   $smarty->assign("content", file_get_contents("lib/staticContent/home.html") );
   
-  $smarty->assign("SHOW_REPOSITORY_TREE", $SHOW_REPOSITORY_TREE);
-  $smarty->assign("REPOSITORY_TREE_LEVELS", $REPOSITORY_TREE_LEVELS);
-  
-  //These lines of code accept an error code from install.php and viewMaterial.php
-  if (count($_REQUEST) > 0){
-    if (isset($_REQUEST["alert"]) && $_REQUEST["alert"] == "success") {
-      $smarty->assign("alert", array("type"=>"positive", "message"=>"Successfully saved configuration.") );   
-    }
-    elseif(isset($_REQUEST["alert"]) && ($_REQUEST["alert"] == "errorNoID") || ($_REQUEST["alert"] == "errorNoMatch")){
-      if($_REQUEST["alert"] == "errorNoID"){
-        $message = "No materials were found because no ID was provided."; 
-      }
-      if($_REQUEST["alert"] == "errorNoMatch"){
-        $message = "No materials were matched with the ID provided."; 
-      }
-      $smarty->assign("alert", array("type"=>"negative", "message"=>$message)); 
-    }
-  }
-  if ($SHOW_REPOSITORY_TREE === TRUE) {
-    $user = isset($userInformation) ? $userInformation : false;
-    $smarty->assign("tree", getTreeHTML(REPOSITORY_ID, REPOSITORY_ID, $user));
-  }
-  
-  if($INSTALL == FALSE) {
-	header("Location: install.php"); 
-  }
-  
-  $smarty->display('home.tpl');
+  $smarty->display('static.tpl');
 
 ?>
       

@@ -12,7 +12,7 @@
  *  Notes: (none)
  ******************************************************************************************************************************/
 
-require("../lib/model/model.php"); //Get model functions.
+require("../lib/backends/backend.php"); //Get datamanager functions.
 require("lib/identify.php");
 require("lib/getRecord.php");
 require("lib/badArgument.php");
@@ -29,10 +29,6 @@ $allowedParms = array("verb", "from", "until", "metadataPrefix", "set", "resumpt
 /* This next block will check to make sure only valid parameters are passed and no parameter is used more than once. */
 $query_string=$_SERVER["QUERY_STRING"];
 //echo $query_string."<br><br>";
-// check for empty string:
-if ( strlen($query_string) <= 0 ) {
-    badArgument("badArgument", "", "No parameter was passed.");
-}
 $query  = explode('&', $query_string);
 $params = array();
 foreach( $query as $param ) //Create a double array $params which has keys of each parameter and values of an array containing the value of each istance of the parameter.
@@ -46,7 +42,7 @@ foreach(array_keys($params) as $arg) {
   }
   //print_r(array_keys($arg));
   if(count($params[$arg]) > 1) { //If a parameter has multiple values, it must have been given more than once.
-      badArgument("badArgument", "", "The parameter ".$arg." was found more than once.");
+      badArgument("badArgument", "", "The perameter ".$arg." was found more than once.");
   }
 }
 /* If here, than all parameters given have valid names and there are no duplicates.  Its safe to
@@ -80,7 +76,7 @@ if(isset($_REQUEST["verb"])) {
     //For now, we only support two built-in sets: modules and materials.  So just print this.
     echo $OAI_TOP;
     echo "<responseDate>".strftime("%Y-%m-%dT%H:%M:%SZ", time())."</responseDate>\n";
-    echo '<request verb="ListSets">'.getRequestURL()."</request>\n";
+    echo '<request verb="ListIdentifiers">'.getRequestURL()."</request>\n";
     echo "<ListSets>\n";
     echo "<set>\n";
     echo "<setSpec>modules</setSpec>\n";

@@ -14,11 +14,11 @@
   
   require(__DIR__ . "/smarty/smarty.php");
   require(__DIR__ . "/backends/backend.php");
-  require(__DIR__ . "/model/model.php");
   require(__DIR__ . "/look/look.php");
   require(__DIR__ . "/config/config.php");
   require(__DIR__ . "/config/header.php");
   require(__DIR__ . "/config/footer.php");
+  require(__DIR__ . "/frontend-ui.php");
   require(__DIR__ . "/authentication.php");
   $backendInformation=getBackendBasicInformation();
   $backendCapabilities=getBackendCapabilities();
@@ -28,9 +28,6 @@
   
   // assign the active "look" directory to Smarty
   $smarty->assign("LOOK_DIR", $LOOK_DIR);
-  
-  // assign whether or not we're using versions
-  $smarty->assign("ENABLE_VERSIONS", $ENABLE_VERSIONS);
   
   // assign array of header config settings to Smarty
   $smarty->assign("HEADER", $HEADER );

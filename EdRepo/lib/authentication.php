@@ -18,7 +18,6 @@ function logout($smarty) { // Smarty must be passed in order for logout() to use
       $logOutResult=logUserOut($_SESSION["authenticationToken"]);
     }
     unset($_SESSION["authenticationToken"]);
-    unset($_SESSION["filters"]);
     
     $smarty->assign("loggedIn", "false");
 }

@@ -25,7 +25,7 @@ function getRequestURL() {
 /* getBaseRepositoryIdentifier($level) - Gets a level of the repository identifier.  This is made in the form:
     oai:host_or_domain_name:COLLECTION_SHORTNAME */
 function getBaseRepositoryIdentifier() {
-  require(dirname(dirname(__DIR__)) . "/lib/config/config.php"); //Require master system configuration
+  require("../lib/config/config.php"); //Require master system configuration
   return "oai:".$_SERVER["SERVER_NAME"].":".$COLLECTION_SHORTNAME;
 }
 

@@ -42,15 +42,15 @@
       // Theme options
       theme_advanced_buttons1 : "bold,italic,underline,strikethrough,|,justifyleft,justifycenter,justifyright,justifyfull,|,styleselect,formatselect,fontselect,fontsizeselect",
       theme_advanced_buttons2 : "cut,copy,paste,pastetext,pasteword,|,search,replace,|,bullist,numlist,|,outdent,indent,blockquote,|,undo,redo,|,link,unlink,anchor,image,cleanup,help,code,|,insertdate,inserttime,preview,|,forecolor,backcolor",
-      theme_advanced_buttons3 : "tablecontrols,|,hr,removeformat,visualaid,|,sub,sup,|,charmap,iespell,media,advhr,|,ltr,rtl,|,fullscreen",
-      theme_advanced_buttons4 : "moveforward,movebackward,|,spellchecker,|,cite,abbr,acronym,del,ins,attribs,|,visualchars,nonbreaking,blockquote,pagebreak",
+      theme_advanced_buttons3 : "tablecontrols,|,hr,removeformat,visualaid,|,sub,sup,|,charmap,emotions,iespell,media,advhr,|,ltr,rtl,|,fullscreen",
+      theme_advanced_buttons4 : "insertlayer,moveforward,movebackward,absolute,|,spellchecker,|,cite,abbr,acronym,del,ins,attribs,|,visualchars,nonbreaking,blockquote,pagebreak,|,insertfile,insertimage",
       theme_advanced_toolbar_location : "top",
       theme_advanced_toolbar_align : "left",
       theme_advanced_statusbar_location : "bottom",
-      theme_advanced_resizing : false,
+      theme_advanced_resizing : true,
 
       // Example content CSS (should be your site CSS)
-      //content_css : "../lib/look/default/main.css",
+      content_css : "../lib/look/default/main.css",
 
       // Drop lists for link/image/media/template dialogs
       template_external_list_url : "js/template_list.js",
@@ -69,34 +69,14 @@
 {if $action == "displayEdit" || $action == "doEdit"} {* ACTION: EDIT ************************}
 <form name="editStaticContentForm" method="post" action="configureHeader.php">
     <input type="hidden" readonly="readonly" name="action" value="doEdit"></input>
-    
     <h2>Basic Settings</h2>
-    <fieldset>
-      <legend>Choose collection logo:</legend>
-      <div class="fieldRow" style="">
-        <input type="radio" name="logo" value="default"{if $HEADER.LOGO == 'default'} checked="checked"{/if} /> 
-        Show default EdRepo logo: 
-        <img style="height: 40px; vertical-align: middle" src="{$baseDir}/lib/look/default/logo.png" alt="Default EdRepo Logo" />
-      </div>
-      <div class="fieldRow">
-        <input type="radio" name="logo" value="text"{if $HEADER.LOGO == 'text'} checked="checked"{/if} /> 
-        Show collection name as text: <strong>{$COLLECTION_NAME|default:'EdRepo Collection'}</strong> (<a href="configureCollection.php">Change</a>)
-      </div>      
-      <div class="fieldRow">
-        <input type="radio" name="logo" value="custom"{if $HEADER.LOGO == 'custom'} checked="checked"{/if} />
-        Show custom logo: <strong>{$HEADER.LOGO_NAME|default:''}</strong><br />
-        <p id="logoFilename" style="margin-left: 30px;">
-        Logo filename: <input type="text" name="logoName" value="{$HEADER.LOGO_NAME}" /><br />
-        <strong>Note:</strong> Logo file must exist in active look directory: <strong>{$LOOK_DIR}</strong>
-        </p>
-      </div>
-      <div class="fieldRow">
-        <p id="iconName">
-        Icon filename: <input type="text" name="iconName" value="{$HEADER.ICON_NAME}" /><br />
-        <strong>Note:</strong> Icon file must exist in active look directory: <strong>{$LOOK_DIR}</strong>
-        </p>
-    </fieldset>
-    
+    <p>
+        <input type="checkbox" name="name" value="TRUE"{if $HEADER.SHOW_NAME==true} checked="checked"{/if} /> 
+        Show collection name: <strong>{$COLLECTION_NAME}</strong>
+    </p>
+    <h2>Header Logo</h2>
+    <p>Logo filename: <input type="text" name="logo" value="{$HEADER.LOGO_NAME}" /><br />
+    <strong>Note:</strong> Logo file must exist in active look directory.</p>
     
     <h2>Other Content</h2>
     <p>Use the editor below to make changes to the content which will be displayed on this collection's header.  Click 

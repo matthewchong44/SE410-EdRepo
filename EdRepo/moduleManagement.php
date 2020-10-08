@@ -7,97 +7,162 @@
  *
  *  Version: 1.0
  *  Author: Ethan Greer
- *  Modified by: Jon Thompson (7/28/2011 - Implemented new interface/Smarty)
  *
  *  Notes: - Only Editors and Admins may use this page.
  ******************************************************************************************************************************/
   
-  require("lib/backends/validate.php"); 
-  require("lib/config.php");
-
-  $smarty->assign("title", $COLLECTION_NAME . ' - Module Management');
-    // title of this page. For most pages: &COLLECTION . " - Title" , default: $COLLECTION_NAME
-  $smarty->assign("tab", "moderate"); // active nav tab. default:  "home"
-  $smarty->assign("baseDir", getBaseDir() ); // should always be getBaseDir() 
-  
-  $smarty->assign("pageName", "Module Management");
-    // name of page to placed in <h1> tag
-  
-  $page=1; //The "page" we are on (default, 1 (first)
-  $recordsPerPage=15; //The number of records to display per page (default, 15)
-  if(isset($_REQUEST["page"])) {
-    $page=$_REQUEST["page"];
+  require("lib/backends/backend.php");
+  require("lib/look/look.php");
+  require("lib/config/config.php");
+  require("lib/frontend-ui.php");
+  $backendInformation=getBackendBasicInformation();
+  $backendCapabilities=getBackendCapabilities();
+?>
+<?php
+  function logout() {
+    if(isset($_SESSION["authenticationToken"])) {
+      $logOutResult=logUserOut($_SESSION["authenticationToken"]);
+    }
+    unset($_SESSION["authenticationToken"]);
   }
-  if(isset($_REQUEST["recordsPerPage"])) {
-    $recordsPerPage=$_REQUEST["recordsPerPage"];
+  
+  if(isset($_SESSION["authenticationToken"])) { //Check if we think someone is already logged in.
+    $userInformation=checkIfUserIsLoggedIn($_SESSION["authenticationToken"]);
+    if(count($userInformation)==0) { //If true, than the user wasn't found
+      logout();
+      unset($userInformation);
+    }
   }
-  $smarty->assign("recordsPerPage", $recordsPerPage);
   
   $action="display";
   $wasFiltered=FALSE; //This determines if the modules fetched were filtered or not, for a nicer display if nothing was found.
   if(isset($_REQUEST["action"])) {
     $action=$_REQUEST["action"];
   }
-  $smarty->assign("action", $action);
-  
-  if(isset($userInformation)) { 
-    $loggedIn = true;
-    if ($userInformation["type"]=="Editor" || $userInformation["type"]=="Admin") {
-      $hasPermission = true;
-    } else {
-      $hasPermission = false;
-    }
-    //Only do any filtering/etc. if we're logged in,
-    if($action=="filter" && isset($_REQUEST["filterText"])) { //If we are suppose to filter the results, do so here (but only if we have enough information to filter with).
-	  $modules=searchModules(array("status"=>"Active", "title"=>$_REQUEST["filterText"]));
+  if(isset($userInformation)) { //Only do any filtering/etc. if we're logged in,
+    if($action=="filter" && isset($_REQUEST["filterTitle"]) && isset($_REQUEST["filterStatus"])) { //If we are suppose to filter the results, do so here (but only if we have enough information to filter with).
+      $modules=searchModules(array("status"=>$_REQUEST["filterStatus"], "title"=>$_REQUEST["filterTitle"]));
       $wasFiltered=TRUE;
       $action="display"; //Tell future parts of the program to display what we just got.
     } else { //No filter was specified, so build a list of all modules owned by this user.
-      $modules=searchModules(array("status"=>"Active")); //Get a list of all modules .
+      $modules=searchModules(array()); //Get a list of all modules .
       $action="display"; //Tell future parts of the program to display what we just got.
     }
-  } else {
-    $loggedIn = false;
-    $hasPermission = false;
   }
-  
-  if (in_array("UseModules", $backendCapabilities["read"]) && in_array("SearchModulesByUserID", $backendCapabilities["read"]) ) {
-    $backendCapable = true;
-  } else {
-    $backendCapable = false;
-  }
-  
-  $smarty->assign("loggedIn", $loggedIn);
-  $smarty->assign("backendCapable", $backendCapable);
-  $smarty->assign("wasFiltered", $wasFiltered);
-  $smarty->assign("hasPermission", $hasPermission);
-
-  
-  if ($hasPermission && $backendCapable) {
-    if($action=="display") {
-      //We'll use the $modules list of modules to display built earlier
-      $smarty->assign("modules", $modules);
-      
-      $lowerLimit=$recordsPerPage*($page-1); //The lowest index in the $records array which will be printed (based on $page and $recordsPerPage
-      $upperLimit=$lowerLimit+$recordsPerPage; //The highest index in the $records array which will be printed (based on $page and $recordsPePage
-      /* It is possible that records were found but the page/recordsPerPage combination is beyond the number of records (meaning no records would be displayed).  If this is true,
-        decrease the page until it is small enough to show some results. */
-      while(count($modules)<$lowerLimit) {
-        $page=$page-1;
-        $lowerLimit=$recordsPerPage*($page-1); //Calculate new lowerLimit based on new page.
-        $upperLimit=$lowerLimit+$recordsPerPage; //Calculate new upperLimit based on new page.
-      }
-      
-      $smarty->assign("page", $page);
-      $smarty->assign("lowerLimit", $lowerLimit);
-      $smarty->assign("upperLimit", $upperLimit);
-      
-      // Calculate number of pages needed by dividing Number of records by Records per page and rounding up with ceil()
-      $numPages = ceil(count($modules)/$recordsPerPage); 
-      $smarty->assign("numPages", $numPages);
-    }
-  }
-        
-  $smarty->display("moduleManagement.php.tpl");
 ?>
-      
+
+<html>
+<head>
+  <link rel="stylesheet" href="<?php echo "lib/look/".$LOOK_DIR."/main.css"; ?>"></link>
+  <title>Resource Management</title>
+  <script type="text/javascript" src="lib/sorttable/sorttable.js"></script>
+</head>
+<body>
+<div id="header">
+  <?php
+    showHeader();
+  ?>
+  <div id="top-nav-bar">
+    <?php showTopNavMenu(); ?>
+  </div>
+</div>
+<div id="content-body-wrapper">
+  <div id="content-body">
+    <div id="left-sidebar">
+      <?php
+        if(isset($userInformation)) {
+          if($userInformation["type"]=="Viewer") {
+            showViewerMenu();
+          } elseif($userInformation["type"]=="SuperViewer") {
+            showSuperViewerMenu();
+          } elseif($userInformation["type"]=="Submitter") {
+            showSubmitterMenu();
+          } elseif($userInformation["type"]=="Editor") {
+            showEditorMenu();
+          } elseif($userInformation["type"]=="Admin") { //We are logged in as an admin.
+            showAdminMenu();
+          }
+        } else { //We aren't logged in.
+          showGuestMenu();
+        }
+      ?>
+    </div> <!-- End left-sidebar div -->
+    <div id="mainContentArea">
+      <div id="mainContentAreaTopInfoBar">
+        <?php
+          if(isset($userInformation)) {
+            echo "You are logged in as ".$userInformation["firstName"]." ".$userInformation["lastName"].'. &nbsp;<a href="userManageAccount.php">Manage Your Account</a> ';
+            echo 'or <a href="loginLogout.php?action=logout">log out</a>.';
+          } else {
+            echo 'Welcome. &nbsp;Please <a href="loginLogout.php?action=login">login</a> to your account, or <a href="createAccount.php">create a new account</a>.';
+          }
+        ?>
+      </div>
+      <?php
+        if(!isset($userInformation)) { //If true, we aren't logged in.
+          echo '<h1>You Must Be Logged In To Continue</h1>';
+          echo '<p>You must be logged in to view this page.  You can do so at the <a href="loginLogout.php">log in page</a>.</p>';
+        } elseif(!in_array("UseModules", $backendCapabilities["read"])) {
+          echo '<h1>This Feature Is Not Supported</h1>';
+          echo '<p>The backend in use ('.$backendInformation["name"].' version '.$backendInformation["version"].') does not support the "UseModules" and/or "SearchModulesByUserID" features which are required by this page.</p>';
+        } elseif(!($userInformation["type"]=="Editor" || $userInformation["type"]=="Admin")) {
+          echo '<h1>Insufficient Privileges To Perform This Action</h1>';
+          echo '<p>You do not have enough permissions to perform this action.  Please log out and log back in as a user with higher privileges ';
+          echo 'to user this page.</p>';
+        } else {
+          echo '<h1>Resource Management</h1>';
+          echo '<form name="filter" action="moduleManagement.php" method="get">';
+          echo '<input type="hidden" readonly="readonly" name="action" value="filter"></input>';
+          if($wasFiltered===TRUE) { //The user had a filter, so be nice and automatically place that in the filter bar.
+            echo 'By title: <input type="text" name="filterTitle" value="'.preg_replace('/"/', '&quot;', $_REQUEST["filterTitle"]).'" id="filterTextInput" onclick="document.getElementById(\'filterTextInput\').value=\'\';"></input>'; 
+            echo '&nbsp;&nbsp;By status: <select name="filterStatus"><option value="*">All</option><option value="InProgress">In Progress</option>';
+            echo '<option value="PendingModeration">Pending Moderation</option><option value="Active">Active</option>';
+            echo '<option value="Locked">Locked</option></select>';
+          } else { //The user didn't have a filter, so display default text in the filter view.
+            echo 'By title: <input type="text" name="filterTitle" value="" id="filterTextInput" onclick="document.getElementById(\'filterTextInput\').value=\'\';"></input>';
+            echo '&nbsp;&nbsp;By status: <select name="filterStatus"><option value="*">All</option><option value="InProgress">In Progress</option>';
+            echo '<option value="PendingModeration">Pending Moderation</option><option value="Active">Active</option>';
+            echo '<option value="Locked">Locked</option></select>';
+          }
+          echo '<input type="submit" class="button" name="submit" value="Filter"></input>';
+          echo '</form>';
+          if($action=="display") {
+            //We'll use the $modules list of modules to display built earlier
+            if(count($modules)==0) { //We didn't find any modules.
+              if($wasFiltered===TRUE) { //The module list was filtered, so even though we didn't find anything, it doesn't mean the user doesn't have any modules (it just means they used too strict a filter).
+                echo 'No Resources were found matching the specified filter.';
+              } else { //We didn't find anything in an unflitered list, so the user doesn't have any materials which belong to them.
+                echo "No Resources currently belong to you.";
+              }
+            } else {
+              echo '<table class="sortable ML">';
+              echo '<thead><tr><th>ID</th><th>Title</th><th>Author</th>';
+              echo '<th>Version</th><th>Date Created</th><th>Status</th>';
+              echo '<th class="sorttable_nosort">Edit</th><th class="sorttable_nosort">Delete</th></tr></thead><tbody>';
+              for($i=0; $i<count($modules); $i++) {
+                $module=$modules[$i];
+                echo '<tr><td>'.$module["moduleID"].'</td><td><a href="viewModule.php?moduleID='.preg_replace('/"/', '&quot;', $module["moduleID"]).'&forceView=true">'.$module["title"].'</a></td>';
+                echo '<td>'.$module["authorFirstName"].' '.$module["authorLastName"].'</td>';
+                echo '<td>'.$module["version"].'</td><td>'.$module["date"].'</td><td>'.$module["status"].'</td>';
+                echo '<td style="white-space: nowrap;"><a href="moduleWizard/welcome.php?moduleID='.preg_replace('/"/', '&quot;', $module["moduleID"]).'&forceActionToEdit=true">Edit</a> | ';
+                echo '<a href="moduleWizard/welcome.php?moduleID='.preg_replace('/"/', '&quot;', $module["moduleID"]).'&moduleAction=createNewVersion">Create New Version</a></td>';
+                echo '<td><a href="moduleWizard/delete.php?moduleID='.htmlspecialchars($module["moduleID"]).'&moduleAction=displayDelete&forceDelete=true">Delete</a></td></tr>';
+              }
+              echo '</tbody></table>';
+            }
+            
+          } else { //Unknown action
+            echo '<p class="alert negative"><img src="lib/look/'.$LOOK_DIR.'/failure.png" alt="Failure"></img> Error.  An Unknown action was specified.</p>';
+          }
+        }
+      ?>
+    
+    </div> <!-- End mainContentArea div -->
+    <div id="right-sidebar"></div>
+  </div>
+</div>
+<div id="footer">
+  <?php showFooter(); ?>
+</div>
+</body>
+</html>

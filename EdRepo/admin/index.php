@@ -27,8 +27,6 @@
         <ul>
             <li><a href="configureCollection.php">Collection Settings</a></li>
             <li><a href="configureCategories.php">Manage Categories</a></li>
-            <li><a href="configureTypes.php">Manage Types</a></li>
-            <li><a href="configureHierarchy.php">Manage Hierarchy</a></li>
 
             <li><a href="editStaticPages.php">Edit Static Pages</a></li>
             <li><a href="../oaiProvider/index.php">Harvest with OAI-PMH</a></li>

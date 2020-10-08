@@ -53,7 +53,7 @@
 {else}
 <form name="nameSearchForm" method="get" action="userManagement.php">
     <input type="hidden" readonly="readonly" name="action" value="display"></input>
-    <a class="button" href="userManagement.php?action=displayCreateAccount">Add New User</a>
+    <a class="button" href="userManagement.php?action=displayCreateAccount">Add New User</a> | 
     <input type="text" name="filterName" id="filterTextInput" value="{$filterName}" />
     <input type="submit" class="button" name="sub" value="Filter"></input>
 </form>
@@ -125,23 +125,8 @@
             <option value="Disabled"{if $editUserInfo.type == "Disabled"} selected="selected"{/if}>Disabled</option>
         </select>
     </div>
-	<div class="fieldRow">
-		<label for="groups"><strong>Group:</strong></label>
-		<select name="groups">
-			<option value="None" {if $editUserInfo.groups == "None"} selected="selected"{/if}>None</option>
-			<option value="Student" {if $editUserInfo.groups == "Student"} selected="selected"{/if}>Student</option>
-			<option value="Teacher" {if $editUserInfo.groups == "Teacher"} selected="selected"{/if}>Teacher</option>
-			<option value="Professor" {if $editUserInfo.groups == "Professor"} selected="selected"{/if}>Professor</option>
-			<option value="Principal" {if $editUserInfo.groups == "Principal"} selected="selected"{/if}>Principal</option>
-			<option value="Dean" {if $editUserInfo.groups == "Dean"} selected="selected"{/if}>Dean</option>
-			<option value="President" {if $editUserInfo.groups == "President"} selected="selected"{/if}>President</option>
-			<option value="Admin" {if $editUserInfo.groups == "Admin"} selected="selected"{/if}>Admin</option>
-		</select>
-	</div>
     </fieldset>
-    <fieldset class="buttons"><input type="submit" class="button" name="submit" value="Apply"></input>
-	<input type="reset" class="button" name="reset" value="Reset"></input>
-	<a href="userManagement.php" class="button">Cancel</a></fieldset>
+    <fieldset class="buttons"><input type="submit" class="button" name="submit" value="Apply"></input><input type="reset" class="button" name="reset" value="Reset"></input><a href="userManagement.php" class="button">Cancel</a></fieldset>
 </form>
 {/if} {* end 'use users' if *}
 {* END ACTION: DISPLAY EDIT USER *********************************************}
@@ -220,29 +205,14 @@ You can also change your password, as well as other account details, from your "
             <option value="Disabled"{if $editUserInfo.type == "Disabled"} selected="selected"{/if}>Disabled</option>
         </select>
     </div>
-		<div class="fieldRow">
-		<label for="groups"><strong>Group:</strong></label>
-		<select name="groups">
-			<option value="Temp" {if $editUserInfo.groups == "Temp"} selected="selected"{/if}>Temp</option>
-			<option value="None" {if $editUserInfo.groups == "None"} selected="selected"{/if}>None</option>
-			<option value="Student" {if $editUserInfo.groups == "Student"} selected="selected"{/if}>Student</option>
-			<option value="Teacher" {if $editUserInfo.groups == "Teacher"} selected="selected"{/if}>Teacher</option>
-			<option value="Professor" {if $editUserInfo.groups == "Professor"} selected="selected"{/if}>Professor</option>
-			<option value="Principal" {if $editUserInfo.groups == "Principal"} selected="selected"{/if}>Principal</option>
-			<option value="Dean" {if $editUserInfo.groups == "Dean"} selected="selected"{/if}>Dean</option>
-			<option value="President" {if $editUserInfo.groups == "President"} selected="selected"{/if}>President</option>
-			<option value="Admin" {if $editUserInfo.groups == "Admin"} selected="selected"{/if}>Admin</option>
-		</select>
-	</div>
-    <div class="fieldRow{if $result == "BadPassword"} error{/if}">
+    <div class="fieldRow">
         <label for="password1"><strong>Password:</strong></label>
         <input type="password" name="password1"></input>
-        {if $result == "BadPassword"}Password must be at least 5 characters.{/if}
     </div>
     <div class="fieldRow">
         <label for="password2"><strong>Retype Password:</strong></label>
         <input type="password" name="password2"></input>
-    </div>	
+    </div>
     </fieldset>
     <fieldset class="buttons">
         <input type="submit" class="button" name="sub" value="Create Account" onclick="return quickValidateNewAccountFields();"></input> 

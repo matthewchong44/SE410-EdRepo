@@ -48,6 +48,7 @@
     $useUsers = true;
   }
   
+  
 if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block is if we're logged in as an admin.
 
   if($action=="display") { //Just show current account information
@@ -95,7 +96,7 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
       $editUserInfo=getUserInformationByID($_REQUEST["userID"]);
       $smarty->assign("editUserInfo", $editUserInfo);
     }
- 
+    
     
   } elseif($action=="doEdit" && isset($_REQUEST["userID"])) {
     $editUserInfo=getUserInformationByID($_REQUEST["userID"]);
@@ -105,7 +106,7 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
     } else {
       $smarty->assign("useUsers", "true");
       
-      if(!isset($_REQUEST["firstName"]) || !isset($_REQUEST["lastName"]) || !isset($_REQUEST["email"]) || !isset($_REQUEST["type"]) || !isset($_REQUEST["groups"]) ) { //If true, we don't have enough information to change anything
+      if(!isset($_REQUEST["firstName"]) || !isset($_REQUEST["lastName"]) || !isset($_REQUEST["email"]) || !isset($_REQUEST["type"])) { //If true, we don't have enough information to change anything
         $smarty->assign("alert", array("type"=>"negative", "message"=>"Error.  Not enough information given to change anything.") );
       } else {
         $result=editUserByID($_REQUEST["userID"],
@@ -113,12 +114,9 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
                             $_REQUEST["firstName"], 
                             $_REQUEST["lastName"], 
                             "", 
-                            $_REQUEST["type"],
-							$_REQUEST["groups"],
-							"",
-                            TRUE, FALSE, FALSE, TRUE);
-							
-		if($result!==TRUE) {
+                            $_REQUEST["type"], 
+                            TRUE, FALSE);
+        if($result!==TRUE) {
           $smarty->assign("alert", array("type"=>"negative",
                                          "message"=>'Unable to update account. Please check your changes below and try again.
                                          <br />Invalid fields are highlighted.') );
@@ -129,43 +127,8 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
                                                 "email"=>$_REQUEST["email"],
                                                 "firstName"=>$_REQUEST["firstName"],
                                                 "lastName"=>$_REQUEST["lastName"],
-                                                "type"=>$_REQUEST["type"],
-												"groups"=>$_REQUEST["groups"], 
-												"locked"=>$_REQUEST["locked"]	));
+                                                "type"=>$_REQUEST["type"]) );
         } else { // Success
-		  $user = getUserInformationByID($_REQUEST["userID"]);
-		  $resetPass = "http://".$_SERVER["SERVER_NAME"].dirname(dirname($_SERVER["PHP_SELF"]))."/forgotPassword.php"; 
-
-      $message = "Dear ". $user["firstName"]. " " . $user["lastName"] . ",\n\n"; 
-		  
-      if ($user["type"] != "Pending" && $user["type"] != "Disabled" && $user["type"] != "Deleted")
-		  {
-
-			   $message .= "We are pleased to inform you that your account for EdRepo has been approved!\n\n"; 
-			   $message .= "Your user name is: " . $user["email"] . ". Your password remains the same, however you can reset your password at anytime on EdRepo's forgot password page: " . $resetPass . "    if necessary.\n\n";
-			   $message .= "We would like to welcome you to EdRepo!\n\n"; 
-			  
-		  }
-		  else if ($user["type"] == "Disabled" || $user["type"] == "Deleted")
-		  {
-			  $message .= "We regret to inform you that your account for EdRepo has been either disabled or deleted.\n\n"; 
-			  $message .= "The user name of: " . $user["email"] . " will no longer gain access to EdRepo.\n\n";
-			  $message .= "If this user name is not yours please disregard this email.\n\n"; 			  
-		  }
-			
-
-      $message .= "Sincerely,\n"; 
-      $message .= "EdRepo"; 
-      $message .= "\n--------------------------\n";
-      $message .= "This is an automatically generated email. Please do not reply.\n";
-      $message .= "For security reasons we suggest you delete this email once you have logged in."; 
-      $message=wordwrap($message, 70);
-      $subject = "EdRepo Account"; 
-      $headers = "From: EdRepo <noreply@edrepo.com>";
-
-      if(!mail($user["email"], $subject, $message, $headers)){
-          $smarty->assign("alert", array("type"=>"negative", "message"=>"Email confirmation was not sent.") );
-      } 
           $smarty->assign("editUserInfo", getUserInformationByID($_REQUEST["userID"]) );
           $smarty->assign("error", "");
           $smarty->assign("alert", array("type"=>"positive", "message"=>"Information Successfully Updated.") );
@@ -189,7 +152,7 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
                                                                       The two passwords entered for your new password do not match."));
       } else {
         $result=editUserByID($editUserInfo["userID"], $editUserInfo["email"], $editUserInfo["firstName"], 
-                             $editUserInfo["lastName"], $_REQUEST["newPassword1"], "", "", "", FALSE, TRUE, TRUE, TRUE);
+                             $editUserInfo["lastName"], $_REQUEST["newPassword1"], "", FALSE, TRUE);
         if($result===TRUE) {
           $smarty->assign("alert", array("type"=>"positive", "message"=>"Your password has been successfully changed.</p>") );
         } else {
@@ -203,6 +166,7 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
       }
     }
     
+    
   } elseif($action=="displayCreateAccount") {
     if(!$useUsers) { //This if block runs if the back-end doesn't support working with users in read/write mode, which is required.
       $smarty->assign("alert", array("type"=>"negative", "message"=>"The back-end in use does not support working 
@@ -213,11 +177,10 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
       $smarty->assign("editUserInfo", array("email"=>"",
                                             "firstName"=>"",
                                             "lastName"=>"",
-                                            "type"=>"",
-											"groups"=>"", 
-											"locked"=>""	));
+                                            "type"=>"") );
       $smarty->assign("result", ""); 
     }
+    
     
   } elseif($action=="doCreateAccount") {
     if($useUsers) { //Only continue if the back-end supports working with users in read/write mode.
@@ -227,9 +190,9 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
         If you are receiving this error after clicking a button or link from within this system, please report it to the collection 
         maintainer.") );
       } else {
-        $result=createUser($_REQUEST["email"], $_REQUEST["firstName"], $_REQUEST["lastName"], $_REQUEST["password1"], $_REQUEST["type"], $_REQUEST["groups"], "FALSE");
+        $result=createUser($_REQUEST["email"], $_REQUEST["firstName"], $_REQUEST["lastName"], $_REQUEST["password1"], $_REQUEST["type"]);
         $smarty->assign("result", $result);
-        if($result===FALSE || $result=="BadEmail" || $result=="EmailAlreadyExists" || $result=="BadPassword" || $result=="BadFirstName" || $result=="BadLastName" || $result=="BadType" || $result=="BadGroup") {
+        if($result===FALSE || $result=="BadEmail" || $result=="EmailAlreadyExists" || $result=="BadPassword" || $result=="BadFirstName" || $result=="BadLastName" || $result=="BadType") {
         
           $smarty->assign("alert", array("type"=>"negative", "message"=>"Failed to create the user/account due to one or more errors.  Please corrent any errors and try again.") );
           
@@ -237,8 +200,7 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
           $smarty->assign("editUserInfo", array("email"=>$_REQUEST["email"],
                                                 "firstName"=>$_REQUEST["firstName"],
                                                 "lastName"=>$_REQUEST["lastName"],
-                                                "type"=>$_REQUEST["type"], 
-												"groups"=>$_REQUEST["groups"]) );
+                                                "type"=>$_REQUEST["type"]) );
           /*                                      
           echo '<form name="createAccountFrom" action="userManagement.php" method="post">';
           echo '<fieldset>';
@@ -316,8 +278,7 @@ if (isset($userInformation) && $userInformation["type"]=="Admin") { //This block
           $smarty->assign("editUserInfo", array("email"=>"",
                                                 "firstName"=>"",
                                                 "lastName"=>"",
-                                                "type"=>"", 
-												"groups"=>"") );
+                                                "type"=>"") );
         }
       }
     } else { //This else block runs if the back-end doesn't support working with users in read/write mode, which is required.

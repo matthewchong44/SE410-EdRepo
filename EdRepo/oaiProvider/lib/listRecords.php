@@ -19,10 +19,10 @@
 	as described by the OAI-PMH documentation for the parameters.
     @parm $metadataPrefix: The metadataPrefix to return results in.  Currently only "oai_dc" is supported.*/
 function listRecords($metadataPrefix) {
-  require(__DIR__ . "/config.php");
+  require("config.php");
   
-  if($metadataPrefix != "oai_dc" && $metadataPrefix != "nsdl_dc") { /* We only support oai_dc and nsdl_dc */
-    badArgument("cannotDisseminateFormat", "metadataPrefix=\"".$metadataPrefix."\"", "This repository only supports the following for metadataPrefix: oai_dc, nsdl_dc");
+  if($metadataPrefix != "oai_dc") { /* We only support oai_dc */
+    badArgument("cannotDisseminateFormat", "metadataPrefix=\"".$metadataPrefix."\"", "This repository only supports the \"oai_dc\" metadataPrefix.");
   }
   
   $set=FALSE; //Default to assume no set was asked for.
@@ -63,7 +63,7 @@ function listRecords($metadataPrefix) {
   }
   
   if($set===FALSE || $set=="modules") { //If no set was specified or the set specified was "modules", get all modules matching $from and $until.
-    $moduleResults=searchModules(array("minDate"=>$from, "maxDate"=>$until, "status"=>"Active"));
+    $moduleResults=searchModules(array("minDate"=>$from, "maxDate"=>$until));
     if($moduleResults===FALSE || $moduleResults=="NotImplimented") { //Just handle these errors as if no results were found.
       $moduleResults=array();
     }
@@ -104,113 +104,54 @@ function listRecords($metadataPrefix) {
         of just re-using the getRecord() function is because we already have all the information we need to print the output, and calling getRecord() again
         for every record would needlessly add twice the amount of work (or more) to the back-end.  If performance is no object, and you prefer the absolutely
         easiest-to-maintain code, convert the contents of the for loop to just keep making calls to getRecord with the approperate parameters. */
-    foreach($moduleResults as $record) {
+    for($i=0; $i<count($moduleResults); $i++) {
       echo "<record>\n";
-      echo "<header>\n<identifier>".urlencode(getBaseRepositoryIdentifier()."/module-".$record["moduleID"])."</identifier>\n";
-      echo "<datestamp>".datesToOai($record["dateTime"])."</datestamp>\n";
-      echo "<setSpec>modules</setSpec></header>\n";
+      echo "<header>\n<identifier>".urlencode(getBaseRepositoryIdentifier()."/module-".$moduleResults[$i]["moduleID"])."</identifier>\n";
+      echo "<datestamp>".datesToOai($moduleResults[$i]["date"])."</datestamp>\n";
+      echo "<setSpec>modules</setSpec>\n</header>\n";
       echo "<metadata>\n";
-      if ($metadataPrefix=="nsdl_dc") {
-        echo '<nsdl_dc:nsdl_dc schemaVersion="1.02.020" xmlns:nsdl_dc="http://ns.nsdl.org/nsdl_dc_v1.02/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dct="http://purl.org/dc/terms/" xmlns:ieee="http://www.ieee.org/xsd/LOMv1p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ns.nsdl.org/nsdl_dc_v1.02/ http://ns.nsdl.org/schemas/nsdl_dc/nsdl_dc_v1.02.xsd">'."\n";
-      } else { // oai_dc
-        echo "<oai_dc:dc xmlns:oai_dc=\"http://www.openarchives.org/OAI/2.0/oai_dc/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd\">\n";
-      }
-      echo "<dc:title>".htmlspecialchars($record["title"], ENT_NOQUOTES)."</dc:title>\n";
-      echo "<dc:identifier>".htmlspecialchars(returnModuleSource($record["moduleID"]), ENT_NOQUOTES)."</dc:identifier>\n";
-      echo "<dc:description>".htmlspecialchars($record["description"], ENT_NOQUOTES)."</dc:description>\n";
-      echo "<dc:date>".datesToOAI($record["dateTime"], ENT_NOQUOTES)."</dc:date>\n";
-      echo "<dc:publisher>".htmlspecialchars($record["authorFirstName"].' '.$record["authorLastName"], ENT_NOQUOTES)."</dc:publisher>\n";
-      echo "<dc:language>".htmlspecialchars($record["language"], ENT_NOQUOTES)."</dc:language>\n";
-      echo "<dc:rights>".htmlspecialchars($record["rights"], ENT_NOQUOTES)."</dc:rights>\n";
-      if ($metadataPrefix=="nsdl_dc") {
-        echo "<dct:educationLevel>".htmlspecialchars($record["educationLevel"], ENT_NOQUOTES)."</dct:educationLevel>\n";
-      }
-      $authors=getModuleAuthors($record["moduleID"]);
-      foreach($authors as $author) {
-        echo "<dc:creator>".htmlspecialchars($author, ENT_NOQUOTES)."</dc:creator>\n";
-      }
-      if ($metadataPrefix=="nsdl_dc") {
-        echo "<dct:accessRights>";
-        if ($record["minimumUserType"] == "Unregistered") {
-          echo "Free access";
-        }
-        else if ($record["minimumUserType"] == "Viewer") {
-          echo "Free access with registration";
-        }
-        else {
-          echo "Limited free access";
-        }
-        echo "</dct:accessRights>\n";
-        
-        echo "<ieee:interactivityType>".htmlspecialchars($record["interactivityType"], ENT_NOQUOTES)."</ieee:interactivityType>\n";
-      }
-      $typeIDs = getModuleTypeIDs($record["moduleID"]);
-      foreach($typeIDs as $typeID) {
-        $type = getTypeByID($typeID);
-        echo "<dc:type>".htmlspecialchars($type["name"], ENT_NOQUOTES)."</dc:type>\n";
-      }
-      $categoryIDs = getModuleCategoryIDs($record["moduleID"]);
-      foreach($categoryIDs as $catID) {
-        $cat = getCategoryByID($catID);
-        echo "<dc:subject>".htmlspecialchars($cat["name"], ENT_NOQUOTES)."</dc:subject>\n";
-      }
-      $topics=getModuleTopics($record["moduleID"]);
+      echo "<oai_dc:dc xmlns:oai_dc=\"http://www.openarchives.org/OAI/2.0/oai_dc/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd\">\n";
+      echo "<dc:title>".htmlspecialchars($moduleResults[$i]["title"], ENT_NOQUOTES)."</dc:title>\n";
+      echo "<dc:description>".htmlspecialchars($moduleResults[$i]["abstract"], ENT_NOQUOTES)."</dc:description>\n";
+      echo "<dc:date>".datesToOAI($moduleResults[$i]["date"], ENT_NOQUOTES)."</dc:date>\n";
+      echo "<dc:creator>".htmlspecialchars($moduleResults[$i]["authorFirstName"].' '.$moduleResults[$i]["authorLastName"], ENT_NOQUOTES)."</dc:creator>";
+      $topics=getModuleTopics($moduleResults[$i]["moduleID"]);
       foreach($topics as $topic) {
         echo "<dc:subject>".htmlspecialchars($topic["text"], ENT_NOQUOTES)."</dc:subject>\n";
       }
-      echo "<dc:source>".returnModuleSource($record["moduleID"])."</dc:source>\n";
-      if ($metadataPrefix=="nsdl_dc") {
-        $attachedmaterials=getAllMaterialsAttatchedToModule($record["moduleID"]);
-        foreach($attachedmaterials as $material) {
-          echo "<dct:hasPart>".htmlspecialchars(returnMaterialSource($material), ENT_NOQUOTES)."</dct:hasPart>\n";
-        }
-        $exreferences=getExternalReferences($record["moduleID"]);
-        foreach($exreferences as $reference) {
-          echo "<dct:References>".htmlspecialchars($reference["link"], ENT_NOQUOTES)."</dct:References>\n";
-        }
-        $inreferences=getInternalReferences($record["moduleID"]);
-        foreach($inreferences as $reference) {
-          echo "<dct:References>".htmlspecialchars(returnModuleSource($reference["referencedModuleID"]), ENT_NOQUOTES)."</dct:References>\n";
-        }
+      echo "<dc:source>".returnModuleSource($moduleResults[$i]["moduleID"])."</dc:source>\n";
+      /* If the minimum user type for the module requested is not "Unregistered" (everyone has access), than print the restriction as 
+        part of the dc:rights element.  This provides a way for haresters to see if records might not be accessable, even if they are 
+        harvestable.  If sending requests based on materials, the dc:rights field would instead be filled with whatever liscense/rights 
+        statement the material uploader input. */
+      if($moduleResults[$i]["minimumUserType"]!="Unregistered") {
+        echo '<dc:rights>Access to this resource is only available to users who have registered an account with this collection and who are of type "'.$moduleResults[$i]["minimumUserType"].'" or higher.</dc:rights>';
       }
-      if ($metadataPrefix=="nsdl_dc") {
-        echo "</nsdl_dc:nsdl_dc>\n";
-      } else { //oai_dc
-        echo "</oai_dc:dc>\n";
-      }
+      echo "</oai_dc:dc>\n";
       echo "</metadata>\n";
       echo "</record>\n";
     }
   }
   if($set===FALSE || $set=="materials") { //Print materials if no set was given or the set was materials.
     /* NOTE: The contents of this loop should be the same thing printed as by a GetRecord request. */
-    foreach($materialResults as $record) {
+    for($i=0; $i<count($materialResults); $i++) {
       echo "<record>\n";
-      echo "<header>\n<identifier>".urlencode(getBaseRepositoryIdentifier()."/material-".$record["materialID"])."</identifier>\n";
-      echo "<datestamp>".datesToOai($record["dateTime"])."</datestamp>\n";
-      echo "<setSpec>materials</setSpec></header>\n";
-      echo "<metadata>\n";    
-      if ($metadataPrefix=="nsdl_dc") {
-        echo '<nsdl_dc:nsdl_dc schemaVersion="1.02.020" xmlns:nsdl_dc="http://ns.nsdl.org/nsdl_dc_v1.02/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dct="http://purl.org/dc/terms/" xmlns:ieee="http://www.ieee.org/xsd/LOMv1p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ns.nsdl.org/nsdl_dc_v1.02/ http://ns.nsdl.org/schemas/nsdl_dc/nsdl_dc_v1.02.xsd">'."\n";
-      } else { // oai_dc
-        echo "<oai_dc:dc xmlns:oai_dc=\"http://www.openarchives.org/OAI/2.0/oai_dc/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd\">\n";
+      echo "<header>\n<identifier>".urlencode(getBaseRepositoryIdentifier()."/material-".$materialResults[$i]["materialID"])."</identifier>\n";
+      echo "<datestamp>".datesToOai($materialResults[$i]["date"])."</datestamp>\n";
+      echo "<setSpec>materials</setSpec>\n</header>\n";
+      echo "<metadata>\n";
+      echo "<oai_dc:dc xmlns:oai_dc=\"http://www.openarchives.org/OAI/2.0/oai_dc/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd\">\n";
+      echo "<dc:title>".htmlspecialchars($materialResults[$i]["title"], ENT_NOQUOTES)."</dc:title>\n";
+      echo "<dc:creator>".htmlspecialchars($materialResults[$i]["creator"], ENT_NOQUOTES)."</dc:creator>\n";
+      echo "<dc:publisher>".htmlspecialchars($materialResults[$i]["publisher"], ENT_NOQUOTES)."</dc:publisher>\n";
+      echo "<dc:rights>".htmlspecialchars($materialResults[$i]["rights"], ENT_NOQUOTES)."</dc:rights>\n";
+      echo "<dc:description>".htmlspecialchars($materialResults[$i]["description"], ENT_NOQUOTES)."</dc:description>\n";
+      /* Unless the type is NotSpecific, print what the type is (the DCMI type definitions don't include an "unknown" or "not specified") */
+      if($materialResults[$i]["type"]!="NotSpecified") {
+        echo "<dc:type>".$materialResults[$i]["type"]."</dc:type>\n";
       }
-      echo "<dc:title>".htmlspecialchars($record["name"], ENT_NOQUOTES)."</dc:title>\n";
-      echo "<dc:identifier>".htmlspecialchars(returnMaterialSource($record["materialID"]), ENT_NOQUOTES)."</dc:identifier>\n";
-      echo "<dc:date>".htmlspecialchars($record["dateTime"], ENT_NOQUOTES)."</dc:date>\n";
-      echo "<dc:format>".htmlspecialchars($record["format"], ENT_NOQUOTES)."</dc:format>\n";
-      if ($metadataPrefix=="nsdl_dc") {
-        $attachedmodules=getAllModulesAttatchedToMaterial($record["materialID"]);
-        foreach($attachedmodules as $module) {
-          echo "<dct:isPartOf>".htmlspecialchars($module, ENT_NOQUOTES)."</dct:isPartOf>\n";
-        }
-      }
-      echo "<dc:source>".returnMaterialSource($record["materialID"])."</dc:source>\n";
-      if ($metadataPrefix=="nsdl_dc") {
-        echo "</nsdl_dc:nsdl_dc>\n";
-      } else { //oai_dc
-        echo "</oai_dc:dc>\n";
-      }
+      echo "<dc:source>".returnMaterialSource($materialResults[$i]["materialID"])."</dc:source>\n";
+      echo "</oai_dc:dc>\n";
       echo "</metadata>\n";
       echo "</record>\n";
     }

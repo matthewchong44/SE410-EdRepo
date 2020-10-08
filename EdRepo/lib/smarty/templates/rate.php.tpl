@@ -47,28 +47,26 @@
 {/if}
 
 {if isset($showRateMaterial) == true && $showRateMaterial == true}
-<h2>Leave A Rating for Material {$material.name}</h2>
+<h2>Leave A Rating for Material {$material.title}</h2>
 <p>Rate this material on a scale of 0 to 5, with 0 being the lowest rating and 5 being the best.  You may also leave 
 comments about the material if you wish.</p>
 <form name="mainForm" action="rate.php" method="post">
     <input type="hidden" readonly="readonly" name="action" value="doRate"></input>
     <input type="hidden" readonly="readonly" name="materialID" value="{$material.materialID}"></input>
-    <input type="hidden" readonly="readonly" name="moduleID" value="{$module.moduleID}"></input>
     <input type="radio" name="rating" value="0"></input>0 &nbsp;
     <input type="radio" name="rating" value="1"></input>1 &nbsp;
     <input type="radio" name="rating" value="2"></input>2 &nbsp;
     <input type="radio" name="rating" value="3"></input>3 &nbsp;
     <input type="radio" name="rating" value="4"></input>4 &nbsp;
     <input type="radio" name="rating" value="5"></input>5<br><hr>
-    <!--Comments (optional)<br>
+    Comments (optional)<br>
     <strong>Title:</strong></label><input type="text" name="commentTitle"></input><br />
-    <textarea name="comment"></textarea>-->
+    <textarea name="comment"></textarea>
     <fieldset class="buttons" style="padding: 0"><input type="submit" class="button" name="submit" value="Rate This Material"></input>
-    <a class="button" href="viewModule.php?moduleID={$module.moduleID}">Cancel</a></fieldset>
+    <a class="button" onclick="history.go(-1);">Cancel</a></fieldset>
 </form>
 {/if}
 
-<a href="viewModule.php?moduleID={$module.moduleID}">&larr; Back to module</a>
 
 {/if} {* end logged in if *}
 

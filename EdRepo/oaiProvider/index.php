@@ -18,7 +18,7 @@
   $smarty->assign("tab", "admin"); // active nav tab. default:  "home"
   $smarty->assign("baseDir", getBaseDir() ); // should always be getBaseDir() 
   
-  $url = "http://".$_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].dirname($_SERVER["SCRIPT_NAME"])."/provider.php";
+  
     
   $content = "    <h1>Harvest with OAI-PMH</h1>
       <p>OAI-PMH is a protocol allowing you to easily collect all of the records stored in this collection, and is useful for integrating this 
@@ -26,7 +26,7 @@
       <p>This collection supports serving requests made in the OAI-PMH version 2 protocol and returns information in the Dublic Core prefix.</p>
       <p>To harvest this collection, point your harvester to the following URL:</p>
       <ul>
-        <li><a href=\"$url\">$url</a></li>
+        <li>http://".$_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].dirname($_SERVER["SCRIPT_NAME"])."/provider.php</li>
       </ul>";
       
     /* Instead of making users edit this HTML to put new content in it, we just display whatever the lib/staticContent/home.html file has in 

@@ -31,16 +31,48 @@
     </p>
 {/if}
 
+<script type="text/javascript" src="../lib/tiny_mce/tiny_mce.js"></script>
+<script type="text/javascript">
+    tinyMCE.init({
+      // General options
+      mode : "textareas",
+      theme : "advanced",
+      plugins : "pagebreak,style,layer,table,advhr,advimage,advlink,emotions,inlinepopups,insertdatetime,searchreplace,paste,fullscreen,visualchars,nonbreaking,xhtmlxtras",
+            
+      // Theme options
+      theme_advanced_buttons1 : "bold,italic,underline,strikethrough,|,justifyleft,justifycenter,justifyright,justifyfull,|,styleselect,formatselect,fontselect,fontsizeselect",
+      theme_advanced_buttons2 : "cut,copy,paste,pastetext,pasteword,|,search,replace,|,bullist,numlist,|,outdent,indent,blockquote,|,undo,redo,|,link,unlink,anchor,image,cleanup,help,code,|,insertdate,inserttime,preview,|,forecolor,backcolor",
+      theme_advanced_buttons3 : "tablecontrols,|,hr,removeformat,visualaid,|,sub,sup,|,charmap,emotions,iespell,media,advhr,|,ltr,rtl,|,fullscreen",
+      theme_advanced_buttons4 : "insertlayer,moveforward,movebackward,absolute,|,spellchecker,|,cite,abbr,acronym,del,ins,attribs,|,visualchars,nonbreaking,blockquote,pagebreak,|,insertfile,insertimage",
+      theme_advanced_toolbar_location : "top",
+      theme_advanced_toolbar_align : "left",
+      theme_advanced_statusbar_location : "bottom",
+      theme_advanced_resizing : true,
+
+      // Example content CSS (should be your site CSS)
+      content_css : "../lib/look/default/main.css",
+
+      // Drop lists for link/image/media/template dialogs
+      template_external_list_url : "js/template_list.js",
+      external_link_list_url : "js/link_list.js",
+      external_image_list_url : "js/image_list.js",
+      media_external_list_url : "js/media_list.js",
+
+      // Replace values for the template plugin
+      //template_replace_values : {
+      //  username : "Some User",
+      //  staffid : "991234"
+      //}
+    });
+</script>
+
 {if $action == "displayEdit" || $action == "doEdit"} {* ACTION: EDIT ************************}
 <form name="editStaticContentForm" method="post" action="configureCollection.php">
     <input type="hidden" readonly="readonly" name="action" value="doEdit"></input>
     <h2>Basic Settings</h2>
-    <fieldset>
-        <div class="fieldRow">
-          Collection name: 
-          <input type="text" name="name" value="{$COLLECTION_NAME}" />
-        </div>
-    </fieldset>
+    <p>
+        Collection name: <input type="text" name="name" value="{$COLLECTION_NAME}" /><br>
+    </p>
     
     <fieldset class="buttons" style="padding-left: 0">
         <input type="submit" class="button" name="sub" value="Save Changes"></input>

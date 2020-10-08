@@ -1,7 +1,7 @@
 <?php
 
 function badArgument($errCode, $extraParms, $message) {
-  require(__DIR__ . "/config.php");
+  require("config.php");
   echo $OAI_TOP."\n";
   echo "<responseDate>".strftime("%Y-%m-%dT%H:%M:%SZ", time())."</responseDate>\n";
   if($extraParms != "") {

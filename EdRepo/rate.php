@@ -100,7 +100,7 @@ if(isset($userInformation)) { //This block runs if the user is logged in.
   
   if((isset($_REQUEST["moduleID"]) && in_array("RateModules", $backendCapabilities["write"])) || (isset($_REQUEST["materialID"]) && in_array("RateMaterials", $backendCapabilities["write"]))) {
     if($action=="display") {
-      if(!isset($_REQUEST["materialID"])) { //Are we trying to work with a module, not material?
+      if(isset($_REQUEST["moduleID"])) { //Are we trying to work with a module?
         $module=getModuleByID($_REQUEST["moduleID"]);
         if($module===FALSE || $module==="NotImplimented" || count($module)<=0) { //Check to make sure the module actually exists
           $smarty->assign("alert", array("type"=>"negative", "message"=>'<h1>Module Not Found</h1>') );
@@ -117,8 +117,6 @@ if(isset($userInformation)) { //This block runs if the user is logged in.
       } elseif(isset($_REQUEST["materialID"])) { //Are we trying to work with a material?
         if(canViewMaterial($userInformation["type"], $_REQUEST["materialID"])) {
           $material=getMaterialByID($_REQUEST["materialID"]);
-          //$parentModules=getAllModulesAttatchedToMaterial($material["materialID"]);          
-          $smarty->assign("module", array("moduleID"=>$_REQUEST["moduleID"]) );
           if($material===FALSE || $material==="NotImplimented" || count($material)<=0) { //Check that the material actually exists
             $smarty->assign("alert", array("type"=>"negative", "message"=>'<h1>Material Not Found</h1>') );
           } else {
@@ -139,13 +137,13 @@ if(isset($userInformation)) { //This block runs if the user is logged in.
       
       
     } elseif($action=="doRate") { //Trying to actually write a rating to a module.
-      if(!isset($_REQUEST["materialID"])) { //Are we trying to work with a module, not material?
+      if(isset($_REQUEST["moduleID"])) { //Are we trying to work with a module?
         $module=getModuleByID($_REQUEST["moduleID"]);
         if($module===FALSE || $module==="NotImplimented" || count($module)<=0) { //Check to make sure the module actually exists
           echo '<h1>Resource Not Found</h1>';
         } else { //This else runs if the module exists
           if(canViewModule($userInformation["type"], $module["minimumUserType"])) {
-            $smarty->assign("module", $module);
+            //echo '<h1>Rate Module '.$module["title"].' version '.$module["version"].'</h1>';
             if(isset($_REQUEST["rating"])) {
               $addRatingResult=addRatingToModule($module["moduleID"], $_REQUEST["rating"]);
             }
@@ -158,24 +156,21 @@ if(isset($userInformation)) { //This block runs if the user is logged in.
             }
           } else { //Error, can't view module
             $smarty->assign("alert", array("type"=>"negative", 
-            "message"=>'The Resource you are attempting to rate is only accessible and rateable to users with a privilege level higher than 
+            "message"=>'The Resource you are attempting to rate is only accessable and rateable to users with a privilege level higher than 
             your current privilege level.') );
           }
         }
       } elseif(isset($_REQUEST["materialID"])) { //Are we trying to work with a material?
         if(canViewMaterial($userInformation["type"], $_REQUEST["materialID"])) {
           $material=getMaterialByID($_REQUEST["materialID"]);
-          //$parentModules=getAllModulesAttatchedToMaterial($material["materialID"]);
-          $smarty->assign("module", array("moduleID"=>$_REQUEST["moduleID"]) );
           if($material===FALSE || $material==="NotImplimented" || count($material)<=0) { //Check that the material actually exists
             $smarty->assign("alert", array("type"=>"negative", "message"=>'No material with the specified ID was found.') );
           } else {
             //echo '<h1>Rate Material '.$material["title"].'</h1>';
             $addRatingResult=FALSE; //By default adding a rating failed.  It will be changed to TRUE if adding a rating succeeds.
-            if(isset($_REQUEST["rating"])) { //&& isset($_REQUEST["commentTitle"]) && isset($_REQUEST["comment"])) { //Check to make sure we have enough info to rate a material.
-              //$addRatingResult=addCommentAndRatingToMaterial($_REQUEST["materialID"], $userInformation["firstName"]." ".$userInformation["lastName"], $_REQUEST["commentTitle"], $_REQUEST["comment"], $_REQUEST["rating"]);
-				$addRatingResult=addCommentAndRatingToMaterial($_REQUEST["materialID"], $userInformation["firstName"]." ".$userInformation["lastName"], "", "", $_REQUEST["rating"]); 
-			}
+            if(isset($_REQUEST["rating"]) && isset($_REQUEST["commentTitle"]) && isset($_REQUEST["comment"])) { //Check to make sure we have enough info to rate a material.
+              $addRatingResult=addCommentAndRatingToMaterial($_REQUEST["materialID"], $userInformation["firstName"]." ".$userInformation["lastName"], $_REQUEST["commentTitle"], $_REQUEST["comment"], $_REQUEST["rating"]);
+            }
             if($addRatingResult!==TRUE) { //Adding rating failed
               $smarty->assign("alert", array("type"=>"negative", "message"=>'Unable to add rating to material.<br />
               An error occurred which trying to add a rating to the material.</p>') );
